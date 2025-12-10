@@ -3,19 +3,38 @@
 ###############################################################################
 
 #Load packages and library files
-library(raster)
-library(maptools)
-library(randomForest)
-library(ranger)
-library(dplyr)
-library(vtable)
-library(pdp)
-library(sf)
-library(data.table)
-library(ggcorrplot)
-library(patchwork)
-library(caret)
-library(dsmextra) 
+# library(raster)
+# library(maptools)
+# library(randomForest)
+# library(ranger)
+# library(tidyverse)
+# library(vtable)
+# library(pdp)
+# library(sf) 
+# library(data.table)
+# library(ggcorrplot)
+# library(patchwork)
+# library(caret)
+# library(dsmextra)
+
+shelf(
+  here,
+  raster,
+  # maptools,                     # no longer available
+  randomForest,
+  ranger,
+  tidyverse,
+  vtable,
+  pdp,
+  sf,
+  data.table,
+  ggcorrplot,
+  patchwork,
+  caret,
+  PresenceAbsence,
+  matrixStats,
+  densitymodelling/dsmextra       # no longer available on CRAN
+)
 
 ## Colour palette
 cpl <- c('#d4ebe7','#cbbcbb','#f5f1f1','#172957','#66afad')
@@ -40,20 +59,25 @@ OneB_theme <-
 ######################################################################
 
 # Set working directory
-wdir = ("C:/Users/AD06/OneDrive - CEFAS/VME/NAFO2024")
-setwd(wdir)
+# wdir = ("C:/Users/AD06/OneDrive - CEFAS/VME/NAFO2024")
+# setwd(wdir)
 
 # Set response variable title for model outputs
-rvar = 'SeaPens'
+rvar = "BlackCorals"#'SeaPens'
 
 
 ### Environmental data -----
 
 # Directory containing environmental rasters
-rasterdir = "/ENVDATA/FINAL"  
+# rasterdir = "/ENVDATA/FINAL"  
+rasterdir <- "data/SDM2024/FINAL Environmental_Variables"
 
 # List of raster files
-predictorfiles = list.files(path = paste(wdir, rasterdir, sep=""), pattern = "\\.tif$", full.names=T)
+# predictorfiles = list.files(path = paste(wdir, rasterdir, sep=""), pattern = "\\.tif$", full.names=T)
+predictorfiles = list.files(path = rasterdir, 
+                            pattern = "tif", 
+                            full.names = TRUE,
+                            recursive = TRUE)
 # Now read the raster data (create a raster stack)
 predictors = stack(predictorfiles,RAT=F)
 # Confirm raster stack with all raster layers present
@@ -71,11 +95,11 @@ rprj = st_crs(predictors) # or if is not included in data set manually e.g. CRS(
 ### Response data ---
 
 # Directory containing response data 
-respdir = ("BIODATA/")
+respdir = ("data/SDM2024/FINAL Response Variables")
 
 
 # Read and investigate csv
-responsefile = read.csv(paste(respdir,"sea_pens.csv", sep=""), header=TRUE)
+responsefile = read.csv(paste(respdir,"Black corals/black_corals.csv", sep="/"), header=TRUE)
 head(responsefile)
 dim(responsefile)
 
@@ -85,7 +109,9 @@ respvar = "VME_P_A"
 xyvars = c("Start_Long_DD","Start_Lat_DD")
 
 # Select response and coordinate columns
-responsedata = data.frame(pa=responsefile[,respvar],x=responsefile[,xyvars[1]], y=responsefile[,xyvars[2]])
+responsedata = data.frame(pa=responsefile[,respvar],
+                          x=responsefile[,xyvars[1]], 
+                          y=responsefile[,xyvars[2]])
 head(responsedata)
 dim(responsedata)
 
@@ -111,7 +137,7 @@ if (pprj != rprj) {
   response_sp <- st_transform(response_sp, rprj)
 }
 
-st_write(response_sp,dsn = paste0('BIODATA/',rvar,'_Data.shp'),append = FALSE)
+st_write(response_sp,dsn = paste0('data/SDM2024/processed/',rvar,'_Data/',rvar,'_Data.shp'),append = FALSE)
 
 
 #########################################################################
@@ -119,7 +145,7 @@ st_write(response_sp,dsn = paste0('BIODATA/',rvar,'_Data.shp'),append = FALSE)
 #########################################################################
 
 ### Extract the values from each predictor for each location in the response data, and put results in a new dataframe
-p.data = extract(predictors, response_sp)
+p.data = raster::extract(predictors, response_sp)
 sdata = data.frame(response, p.data) #adds all the extracted values to the existing dataframe
 head(sdata)
 prnames = colnames(p.data)  #get names from new columns
@@ -153,31 +179,31 @@ missingdata = missingdata[!complete.cases(missingdata),]  #!interested in rows t
 dim(missingdata)
 
 #### THIS IS POTENTIAL TO INCLUDE IF WANT ####
-
-## Increase prevalence by sub-sampling absence data --
-
-# calculate number of presences
-npres <- sdata %>%
-          filter(pa=='1') %>%
-          nrow()
-# Calculate prevalence
-preval <- npres/nrow(sdata)
-preval
-            
-# If prevalence threshold of 5% is not met subsample absences to match it 
-if (preval <0.05) {
-sdata <- sdata %>%
-          filter(pa=='1') %>% 
-          bind_rows(sdata %>%
-                      filter(pa=='0') %>%
-                      sample_n(20*npres))
-}
+# 
+# ## Increase prevalence by sub-sampling absence data --
+# 
+# # calculate number of presences
+# npres <- sdata %>%
+#           filter(pa=='1') %>%
+#           nrow()
+# # Calculate prevalence
+# preval <- npres/nrow(sdata)
+# preval
+#             
+# # If prevalence threshold of 5% is not met subsample absences to match it 
+# if (preval <0.05) {
+# sdata <- sdata %>%
+#           filter(pa=='1') %>% 
+#           bind_rows(sdata %>%
+#                       filter(pa=='0') %>%
+#                       sample_n(20*npres))
+# }
 
 #################################################
 
 # Save the data frame and labels
-save(sdata,envlab,
-     file = paste0('Models/',rvar,'_Data.RData')) 
+save(sdata,#envlab,
+     file = paste0('data/SDM2024/processed/',rvar,'_Data.RData')) 
 
 #########################################################################
 #### STEP 4. VARIABLE ELIMINATION/SELECTION #############################
@@ -200,8 +226,8 @@ sumtable(sdata[sdata$pa=="1",], simple.kable = TRUE)
 ## Covariance of environmental variables --
 # Correlation
 corr <- cor(sdata[-1])
-colnames(corr) <- envlab[colnames(corr)]
-rownames(corr) <- envlab[rownames(corr)]
+# colnames(corr) <- envlab[colnames(corr)]
+# rownames(corr) <- envlab[rownames(corr)]
 # Correlation plot
 corplot <- ggcorrplot::ggcorrplot(corr, method='circle',type = 'upper',hc.order = TRUE)
 corplot
@@ -222,7 +248,7 @@ full.importance
 
 ## Plot partial dependence --
 
-# Set up obkject to save plot data to
+# Set up object to save plot data to
 plotdata <- NULL
 predselnf <- numvars # for backwards compatibility for now
 
@@ -270,7 +296,7 @@ for (i in predselnf) {
 }
 
 # Write a pdf with all partial plots to check
-pdf(paste0("Models/combined_plots_",rvar,".pdf"), width = 8, height = 11)
+pdf(paste0("output/SDM2024/combined_plots_",rvar,".pdf"), width = 8, height = 11)
 # Loop through the plots and arrange them in a 2x4 grid, 8 plots per page
 for (i in seq(1, length(fullRP.list), by = 8)) {
   combined_plot <- wrap_plots(fullRP.list[i:min(i+7, length(fullRP.list))], ncol = 2, nrow = 4)
@@ -338,8 +364,8 @@ summary(mdata)
 
 
 ### Save preliminary model and model data ----
-save(prelRF,full.importance,crval,clms,mdata,plotdata.r, file=paste0("Models/RF_Prelim_",rvar,".RData"))
-save(sdata,mdata,clms,predsel,file = paste0("Models/",rvar,'_Data.RData'))
+save(prelRF,full.importance,crval,clms,mdata,plotdata.r, file=paste0("data/SDM2024/processed/RF_Prelim_",rvar,".RData"))
+save(sdata,mdata,clms,predsel,file = paste0("data/SDM2024/processed/",rvar,'_Data.RData'))
 
 
 
@@ -353,7 +379,7 @@ save(sdata,mdata,clms,predsel,file = paste0("Models/",rvar,'_Data.RData'))
 ### Set up data and constants ----
 
 # Set name of response variable to be used in results tables
-tax = 'Sea pens'
+tax = 'BlackCorals' #'SeaPens'
 # Set the name of the positive class
 pcl = '1'
 # Predictor variable constants
@@ -378,7 +404,7 @@ trainIndexP <- createDataPartition(mdata$resp, p = .90, # Repeated sampling
                                   times = nruns)
 trainIndexK <- createFolds(mdata$resp,k=nruns) # K-fold
 
-# Create 10 x seperate train and tests sets using K-fold
+# Create 10 x separate train and tests sets using K-fold
 for (j in 1:nruns){
   
   train.sets[[j]] <- mdata[unname(unlist(trainIndexK[-j])),]
@@ -387,7 +413,7 @@ for (j in 1:nruns){
   next}
 
 # Save the datasets
-save(train.sets,test.sets,file=paste0("Models/Train_Test_",rvar,".RData"))
+save(train.sets,test.sets,file=paste0("data/SDM2024/Train_Test_",rvar,".RData"))
 
 
 ### Drop unnecessary layers from predictors ---
@@ -525,7 +551,7 @@ for (j in 1:10){
 
 
 # Save models and validation results, plot data and importances
-save(ffs,plotdata,class.res.all,imps,file = paste0('Models/RF_Results_',rvar,'.RData'))
+save(ffs,plotdata,class.res.all,imps,file = paste0('data/SDM2024/processed/RF_Results_',rvar,'.RData'))
 
 
 #### Look at the Validation statistics ----
@@ -600,7 +626,7 @@ imppl[,Var:=factor(Var,levels=Var[order(Mean)])]
 
 impplot <-  ggplot(imppl,(aes(x=Var,y=Mean))) +
   geom_bar(stat = 'identity',fill='#66afad', col='#172957',) +
-  scale_x_discrete(labels=envlab[levels(imppl$Var)]) +
+  # scale_x_discrete(labels=envlab[levels(imppl$Var)]) +
   geom_linerange(inherit.aes=FALSE,
                  aes(x=Var, ymin=Mean-Se, ymax=Mean+Se), 
                  colour='#172957', alpha=0.9, linewidth=1.3) +
@@ -623,7 +649,7 @@ impplot <-  ggplot(imppl,(aes(x=Var,y=Mean))) +
 impplot
 
 ggsave(impplot,
-       filename=paste0('Models/',rvar,'_VariableImportance.png'),
+       filename=paste0('output/SDM2024/',rvar,'_VariableImportance.png'),
        device = 'png', width = 15, height=16, units='cm', dpi=300, scale=1)
 
 
@@ -643,7 +669,7 @@ for (i in predsel) {
     geom_smooth(method='loess',linewidth=0.01,se=FALSE,span = 0.2,col='#66afad') +
     geom_smooth(inherit.aes=FALSE,aes(x=x,y=y),
                 method='loess',linewidth=0.9,se=FALSE,span = 0.2,col='#172957') +
-    facet_wrap(~ predvar,scales = "free_x",ncol =3,labeller = labeller(predvar = envlab)) +
+    facet_wrap(~ predvar,scales = "free_x",ncol =3) + #labeller = labeller(predvar = envlab)) +
     ylim(c(min(c(0,pplotdata$y)),mxy)) +
     OneB_theme +
     theme(axis.title.y = element_blank(),
@@ -664,7 +690,8 @@ cvRP <-  wrap_plots(cvRP.list) + plot_layout(ncol=4)
 cvRP
 
 # Save the plot data
-save(results,asg.perf,imppl, impplot,pplotdata,cvRP,cvRP.list, file=paste0("Models/RF_",rvar,"_Results_Summary.RData"))
+save(results,asg.perf,imppl, impplot,pplotdata,cvRP,cvRP.list, 
+     file=paste0("data/SDM2024/processed/RF_",rvar,"_Results_Summary.RData"))
 
 
 #### Raster outputs ----
@@ -704,22 +731,27 @@ names(ROutput) <- c("MaxClass","MaxClassF","MaxClassAveProb","CombConf","cvSum")
 plot(ROutput)
 
 ### Export Raster
-raster::writeRaster(ROutput$MaxClass, paste0("Models/",rvar,"_raster_output_maxclass.tif"), format="GTiff",overwrite=T)
-raster::writeRaster(ROutput$MaxClassF, paste0("Models/",rvar,"_raster_output_maxclassf.tif"), format="GTiff",overwrite=T)
-raster::writeRaster(ROutput$MaxClassAveProb, paste0("Models/",rvar,"_raster_output_maxclassaveprob.tif"), format="GTiff",overwrite=T)
-raster::writeRaster(ROutput$CombConf, paste0("Models/",rvar,"_raster_output_combconf.tif"), format="GTiff",overwrite=T)
-raster::writeRaster(ROutput$cvSum,  paste0("Models/",rvar,"VME_raster_output_cvsum.tif"), format="GTiff",overwrite=T)
+raster::writeRaster(ROutput$MaxClass, 
+                    paste0("output/SDM2024/",rvar,"_raster_output_maxclass.tif"), format="GTiff",overwrite=T)
+raster::writeRaster(ROutput$MaxClassF, 
+                    paste0("output/SDM2024/",rvar,"_raster_output_maxclassf.tif"), format="GTiff",overwrite=T)
+raster::writeRaster(ROutput$MaxClassAveProb, 
+                    paste0("output/SDM2024/",rvar,"_raster_output_maxclassaveprob.tif"), format="GTiff",overwrite=T)
+raster::writeRaster(ROutput$CombConf, 
+                    paste0("output/SDM2024/",rvar,"_raster_output_combconf.tif"), format="GTiff",overwrite=T)
+raster::writeRaster(ROutput$cvSum,  
+                    paste0("output/SDM2024/",rvar,"VME_raster_output_cvsum.tif"), format="GTiff",overwrite=T)
 
 ### Save raster stack to R workspace
-save(AvePclass,ROutput,file= paste0("Models/",rvar,"_raster_output_all.RData"))
+save(AvePclass,ROutput,file= paste0("data/SDM2024/processed/",rvar,"_raster_output_all.RData"))
 
 
 ### Extrapolation areas
-library(dsmextra) 
+# library(dsmextra)  # no longer available
 
 covariates.names <- predsel
 
-allpred <-rasterToPoints(predictors)
+allpred <- rasterToPoints(predictors)
 p.data.all = data.frame(allpred)
 aftt_crs <- sp::CRS("+proj=utm +zone=23 +datum=NAD83 +units=m +no_defs")
 
@@ -737,12 +769,18 @@ plot(extrapolation.area$rasters$mic$combinatorial) # most important variables ca
 
 
 ### Export Raster
-writeRaster(extrapolation.area$rasters$ExDet$analogue, paste0("Models/",rvar,"_ext.analogue.tif"), format="GTiff",overwrite=T)
-writeRaster(extrapolation.area$rasters$ExDet$univariate, paste0("Models/",rvar,"_ext.univariate.tif"), format="GTiff",overwrite=T) 
-writeRaster(extrapolation.area$rasters$ExDet$combinatorial, paste0("Models/",rvar,"_ext.combinatorial.tif"), format="GTiff",overwrite=T) 
-writeRaster(extrapolation.area$rasters$mic$analogue, paste0("Models/",rvar,"_mic.analogue.tif"), format="GTiff",overwrite=T) 
-writeRaster(extrapolation.area$rasters$mic$univariate, paste0("Models/",rvar,"_mic.univariate.tif"), format="GTiff",overwrite=T) 
-writeRaster(extrapolation.area$rasters$mic$combinatorial, paste0("Models/",rvar,"_mic.combinatorial.tif"), format="GTiff",overwrite=T)
+writeRaster(extrapolation.area$rasters$ExDet$analogue, 
+            paste0("output/SDM2024/",rvar,"_ext.analogue.tif"), format="GTiff",overwrite=T)
+writeRaster(extrapolation.area$rasters$ExDet$univariate, 
+            paste0("output/SDM2024/",rvar,"_ext.univariate.tif"), format="GTiff",overwrite=T) 
+writeRaster(extrapolation.area$rasters$ExDet$combinatorial, 
+            paste0("output/SDM2024/",rvar,"_ext.combinatorial.tif"), format="GTiff",overwrite=T) 
+writeRaster(extrapolation.area$rasters$mic$analogue, 
+            paste0("output/SDM2024/",rvar,"_mic.analogue.tif"), format="GTiff",overwrite=T) 
+writeRaster(extrapolation.area$rasters$mic$univariate, 
+            paste0("output/SDM2024/",rvar,"_mic.univariate.tif"), format="GTiff",overwrite=T) 
+writeRaster(extrapolation.area$rasters$mic$combinatorial, 
+            paste0("output/SDM2024/",rvar,"_mic.combinatorial.tif"), format="GTiff",overwrite=T)
 
 
 
