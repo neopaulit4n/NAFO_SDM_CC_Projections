@@ -4,7 +4,7 @@
 # Load mapping data ----
 
 # Load NAFO boundary
-sa <- terra::rast("data/raw/NRA_BNAM_b_tmp_mean.tif") %>%
+sa <- terra::rast("data/raw/Mapping_Layers/NRA_BNAM_b_tmp_mean.tif") %>%
   terra::as.polygons(.) %>%
   sf::st_as_sf(.) %>%
   sf::st_transform(4326) %>%
@@ -13,7 +13,7 @@ sa <- terra::rast("data/raw/NRA_BNAM_b_tmp_mean.tif") %>%
   summarise(geometry = sf::st_union(geometry))
 
 # Load NOAA bathymetry
-bathy_noaa <- readRDS("data/raw/bathy_noaa.rds")
+bathy_noaa <- readRDS("data/raw/Mapping_Layers/bathy_noaa.rds")
 
 # Transform response dataframe into sf
 resp_sf <- sf::st_as_sf(resp_df, coords = c("Start_Long_DD", "Start_Lat_DD"), crs = 4326)
