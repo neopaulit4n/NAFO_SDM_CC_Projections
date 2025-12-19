@@ -3,38 +3,38 @@
 ###############################################################################
 
 #Load packages and library files
-# library(raster)
-# library(maptools)
-# library(randomForest)
-# library(ranger)
-# library(tidyverse)
-# library(vtable)
-# library(pdp)
-# library(sf) 
-# library(data.table)
-# library(ggcorrplot)
-# library(patchwork)
-# library(caret)
-# library(dsmextra)
+library(raster)
+# library(maptools)            # no longer available
+library(randomForest)
+library(ranger)
+library(tidyverse)
+library(vtable)
+library(pdp)
+library(sf)
+library(data.table)
+library(ggcorrplot)
+library(patchwork)
+library(caret)
+# library(dsmextra)            # no longer available on CRAN
 
-shelf(
-  here,
-  raster,
-  # maptools,                     # no longer available
-  randomForest,
-  ranger,
-  tidyverse,
-  vtable,
-  pdp,
-  sf,
-  data.table,
-  ggcorrplot,
-  patchwork,
-  caret,
-  PresenceAbsence,
-  matrixStats,
-  densitymodelling/dsmextra       # no longer available on CRAN
-)
+# shelf(
+#   here,
+#   raster,
+#   # maptools,                     # no longer available
+#   randomForest,
+#   ranger,
+#   tidyverse,
+#   vtable,
+#   pdp,
+#   sf,
+#   data.table,
+#   ggcorrplot,
+#   patchwork,
+#   caret,
+#   PresenceAbsence,
+#   matrixStats,
+#   densitymodelling/dsmextra       # no longer available on CRAN
+# )
 
 ## Colour palette
 cpl <- c('#d4ebe7','#cbbcbb','#f5f1f1','#172957','#66afad')
@@ -63,14 +63,14 @@ OneB_theme <-
 # setwd(wdir)
 
 # Set response variable title for model outputs
-rvar = "BlackCorals"#'SeaPens'
+rvar = "BlackCorals"  #'SeaPens'
 
 
 ### Environmental data -----
 
 # Directory containing environmental rasters
 # rasterdir = "/ENVDATA/FINAL"  
-rasterdir <- "data/SDM2024/FINAL Environmental_Variables"
+rasterdir <- "data/raw/SDM2024/FINAL Environmental_Variables"
 
 # List of raster files
 # predictorfiles = list.files(path = paste(wdir, rasterdir, sep=""), pattern = "\\.tif$", full.names=T)
@@ -153,13 +153,13 @@ str(sdata)
 
 ### Labels to use for environmental variables
 # names of predictor columns
-prnames
-# Read csv file with two columns 'variable' with predictor column names and 'label' with labels to use for plotting
-varlabs <- read.csv("Models/varnames.csv")
-# Convert to named vector
-envlab <- varlabs$label
-names(envlab) <- varlabs$variable
-envlab
+# prnames
+# # Read csv file with two columns 'variable' with predictor column names and 'label' with labels to use for plotting
+# varlabs <- read.csv("Models/varnames.csv")
+# # Convert to named vector
+# envlab <- varlabs$label
+# names(envlab) <- varlabs$variable
+# envlab
 
 
 #########################################################################
@@ -551,7 +551,7 @@ for (j in 1:10){
 
 
 # Save models and validation results, plot data and importances
-save(ffs,plotdata,class.res.all,imps,file = paste0('data/SDM2024/processed/RF_Results_',rvar,'.RData'))
+save(ffs,plotdata,class.res.all,imps,file = paste0('data/processed/SDM2024_rerun/',rvar,'/RF_Results_',rvar,'.RData'))
 
 
 #### Look at the Validation statistics ----
