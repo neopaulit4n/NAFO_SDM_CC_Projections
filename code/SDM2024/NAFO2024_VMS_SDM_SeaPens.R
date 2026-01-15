@@ -95,7 +95,7 @@ rprj = st_crs(predictors) # or if is not included in data set manually e.g. CRS(
 ### Response data ---
 
 # Directory containing response data 
-respdir = ("data/SDM2024/FINAL Response Variables")
+respdir = ("data/raw/SDM2024/FINAL Response Variables")
 
 
 # Read and investigate csv

@@ -10,12 +10,15 @@ resp_df <- read_csv("data/cleaned/VME_group_PA_df.csv", show_col_types = FALSE)
 
 # Load predictors
 
-# Load terrain variables (unchanging)
+# Load terrain variables (static)
 bathy_layers <- list.files(path = "data/raw/BNAM_Data_From_Cam/Bathymetry_Terrain_From_NAFO_SharePoint", 
                            pattern = "\\.tif$", full.names = TRUE) %>%
   set_names(., nm = basename(.) %>% tools::file_path_sans_ext()) %>%
   lapply(terra::rast) %>%
   lapply(terra::project, "EPSG:4326")
+
+names(bathy_layers) <- gsub("GEBCO2024_FS005_StudyArea_","",names(bathy_layers))
+names(bathy_layers)[1] <- "FS005"
 
 # Load BNAM layers (will use these to form predictions, decide which variables to select)
 bnam_layers <- list.files("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint", 
@@ -50,13 +53,14 @@ bnam_layers <- bnam_layers[!is.na(names(bnam_layers))]
 
 
 # Extract predictor values at response locations ----
-pred_values <- lapply(bnam_layers, function(layer) {
+pred_values <- lapply(c(bathy_layers, bnam_layers), function(layer) {
   terra::extract(layer, 
                  select(resp_df, Start_Long_DD, Start_Lat_DD)) %>%
     select(-ID)
 }) %>%
   bind_cols()
-colnames(pred_values) <- names(bnam_layers)
+colnames(pred_values) <- c(names(bathy_layers), names(bnam_layers))
+
 
 # Combine predictor and response dataframes ----
 comb_df <- bind_cols(resp_df, pred_values) %>%
@@ -66,20 +70,6 @@ comb_df <- bind_cols(resp_df, pred_values) %>%
 comb_df_compl <- comb_df %>%
   drop_na()
 
-comb_df_miss <- comb_df[which(!complete.cases(comb_df)),]
+# comb_df_miss <- comb_df[which(!complete.cases(comb_df)),]
 
-# Preliminary RF model test ----
-rf_test_form <- as.formula(paste("VME_P_A ~", 
-                                 paste(colnames(pred_values), collapse = " + ")))
-rf_test <- randomForest::randomForest(formula = rf_test_form,
-                        data = filter(comb_df_compl, VME_Group == "boltenia"),
-                        importance=TRUE)
-rf_test <- lapply(unique(comb_df_compl$VME_Group), function(vme_group) {
-  rf_model <- randomForest::randomForest(formula = rf_test_form,
-                                        data = filter(comb_df_compl, VME_Group == vme_group),
-                                        importance=TRUE)
-  return(rf_model)
-}) %>%
-  set_names(unique(comb_df_compl$VME_Group))
 
-rf_test
