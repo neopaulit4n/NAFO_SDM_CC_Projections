@@ -16,23 +16,7 @@ rf_prelim_form <- as.formula(paste("VME_P_A ~",
 
 ## Increase prevalence by sub-sampling absence data (not used) ----
 
-# # calculate number of presences
-# npres <- resp_df %>%
-#           filter(VME_Group == 'black_corals' &
-#                  VME_P_A == '1') %>%
-#           nrow()
-# # Calculate prevalence
-# preval <- npres/nrow(filter(resp_df, VME_Group == 'black_corals'))
-# preval
-# 
-# # If prevalence threshold of 5% is not met, sub-sample absences to match the threshold
-# if (preval < 0.05) {
-#   resp_df_subsamp <- filter(resp_df, VME_Group == 'black_corals') %>%
-#           filter(VME_P_A == '1') %>%
-#           bind_rows(filter(resp_df, VME_Group == 'black_corals') %>%
-#                       filter(VME_P_A == '0') %>%
-#                       slice_sample(n = npres))  # originally 20 * npres
-# }
+
 
 ## Preliminary RF model run (save/load) ----
 # rf_prelim <- lapply(unique(comb_df_compl$VME_Group), function(vme_group) {
@@ -207,11 +191,13 @@ select_vme_vars_m1 <- function(vme_group, cor_threshold = 0.7) {
 selected_vme_vars_m1 <- lapply(unique(comb_df_compl$VME_Group), select_vme_vars_m1, cor_threshold = 0.7) %>%
   set_names(unique(comb_df_compl$VME_Group))
 
+saveRDS(selected_vme_vars_m1, file = "data/processed/02_Exploratory/selected_vme_vars_m1.rds")
+selected_vme_vars_m1 <- readRDS("data/processed/02_Exploratory/selected_vme_vars_m1.rds")
 
 # Method 2: RFE ----
 
 # Remove correlated variables > 0.7
-select_vme_vars_m2 <- function(x, cor_threshold = 0.7, verbose = TRUE) {
+remove_cor_m2 <- function(x, cor_threshold = 0.7, verbose = TRUE) {
   
   cor_threshold_new <- cor_threshold
     
@@ -292,7 +278,7 @@ select_vme_vars_m2 <- function(x, cor_threshold = 0.7, verbose = TRUE) {
                                      verbose = verbose)
 }
 
-selected_vme_vars_m2 <- select_vme_vars_m2(distinct(pred_df), cor_threshold = 0.7, verbose = TRUE)
+uncor_vars_m2 <- remove_cor_m2(distinct(pred_df), cor_threshold = 0.7, verbose = TRUE)
 
 # selected_vme_vars_m2 <- lapply(unique(comb_df_compl$VME_Group), select_vme_vars_m2, cor_threshold = 0.7) %>%
 #   set_names(unique(comb_df_compl$VME_Group))
@@ -314,8 +300,8 @@ selected_vme_vars_m2 <- select_vme_vars_m2(distinct(pred_df), cor_threshold = 0.
 library(caret)
 library(randomForest)
 
-rfe_x <- as.data.frame(comb_df_compl[comb_df_compl$VME_Group == "black_corals", selected_vme_vars_m2])
-rfe_y <- as.factor(filter(comb_df_compl, VME_Group == "black_corals")$VME_P_A)
+rfe_x <- as.data.frame(comb_df_compl[comb_df_compl$VME_Group == "sponges", uncor_vars_m2])
+rfe_y <- as.factor(filter(comb_df_compl, VME_Group == "sponges")$VME_P_A)
 levels(rfe_y) <- c("absent", "present")
 # rfe_y <- as.numeric(rfe_y)-1
 # rfe_res <- caret::rfe(x = rfe_x,
@@ -350,26 +336,92 @@ rfe_ctrl <- rfeControl(
   verbose = TRUE
 )
 
+set.seed(123)
 rfe_res <- rfe(x = rfe_x,
                y = rfe_y,
                sizes = c(1:16),
                rfeControl = rfe_ctrl)
 print(rfe_res)
 
-
+ggplot(rfe_res, metric = "Accuracy")
+ggplot(rfe_res, metric = "Kappa")
 
 # Compare random forest with method 1 vs method 2 ----
-rf_m1 <- randomForest::randomForest(formula = as.formula(paste("VME_P_A ~", 
-                                                                 paste(selected_vme_vars_m1$black_corals$selected_vars, collapse = " + "))),
-                                    data = filter(comb_df_compl, VME_Group == "black_corals"),
-                                    importance=TRUE)
-rf_m1
 
-rf_m2 <- randomForest::randomForest(formula = as.formula(paste("VME_P_A ~", 
-                                                                 paste(rfe_res$optVariables, collapse = " + "))),
-                                    data = filter(comb_df_compl, VME_Group == "black_corals"),
-                                    importance=TRUE)
-rf_m2
+# Comparison using cross-validation using identical folds for both methods
+
+library(pROC)
+
+# Custom function with ALL metrics
+rf_metrics <- function(data, lev = NULL, model = NULL) {
+  cm <- confusionMatrix(data$pred, data$obs, positive = lev[2])
+  
+  sens <- as.numeric(cm$byClass["Sensitivity"])
+  spec <- as.numeric(cm$byClass["Specificity"])
+  tss <- sens + spec - 1
+  
+  roc_obj <- roc(data$obs, data[, lev[2]], quiet = TRUE)
+  
+  # Return as named vector with as.numeric to strip attributes
+  out <- c(as.numeric(cm$overall["Accuracy"]),
+           as.numeric(cm$overall["Kappa"]),
+           sens,
+           spec,
+           tss,
+           as.numeric(auc(roc_obj)))
+  
+  names(out) <- c("Acc", "Kap", "Sens", "Spec", "TSS", "AUC")
+  
+  return(out)
+}
+
+
+# Set up training control
+set.seed(123)
+train_index <- caret::createFolds(y = filter(comb_df_compl, VME_Group == "sponges")$VME_P_A, 
+                                          k = 10, 
+                                          returnTrain = TRUE,
+                                  list = TRUE)
+
+set.seed(123)
+train_control <- trainControl(index = train_index,
+                              method = "cv",
+                     number = 10,
+                     classProbs = TRUE,
+                     summaryFunction = rf_metrics,
+                     savePredictions = "final")
+
+# Train both models with identical CV folds
+rf_m1 <- caret::train(form = as.formula(paste("VME_P_A ~", 
+                                              paste(selected_vme_vars_m1$sponges$selected_vars, collapse = " + "))),
+                      data = filter(comb_df_compl, VME_Group == "sponges"),
+                      method = "rf",
+                      trControl = train_control,
+                      metric = "AUC")
+
+rf_m2 <- caret::train(form = as.formula(paste("VME_P_A ~", 
+                                              paste(rfe_res$optVariables, collapse = " + "))),
+                      data = filter(comb_df_compl, VME_Group == "sponges"),
+                      method = "rf",
+                      trControl = train_control,
+                      metric = "AUC")
+
+# Compare all metrics
+rf_mcomp_res <- resamples(list(Method1 = rf_m1, Method2 = rf_m2))
+saveRDS(rf_mcomp_res, file = "data/processed/02_Exploratory/VarElimMethodComparisonResults_sponges.rds")
+
+# View summary statistics
+summary(rf_mcomp_res)
+
+# Statistical comparison of differences
+diff_results <- diff(rf_mcomp_res)
+summary(diff_results)
+
+# Visualise comparisons
+dotplot(rf_mcomp_res)
+bwplot(rf_mcomp_res)
+
+
 
 
 # Method 3: SMOTE to fix data imbalance between presence/absence ----

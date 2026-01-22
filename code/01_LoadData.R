@@ -64,7 +64,7 @@ colnames(pred_df) <- c(names(bathy_layers), names(bnam_layers))
 
 # Combine predictor and response dataframes ----
 comb_df <- bind_cols(resp_df, pred_df) %>%
-  mutate(VME_P_A = as.factor(VME_P_A))
+  mutate(VME_P_A = factor(VME_P_A, levels = c(0, 1), labels = c("Absence", "Presence")))
 
 # Remove NA
 comb_df_compl <- comb_df %>%
