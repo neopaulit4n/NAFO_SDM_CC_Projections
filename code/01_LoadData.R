@@ -3,14 +3,12 @@
 
 library(tidyverse)
 
-# Load data ----
-
-# Load response
+# Load response ----
 resp_df <- read_csv("data/cleaned/VME_group_PA_df.csv", show_col_types = FALSE)
 
-# Load predictors
+# Load predictors ----
 
-# Load terrain variables (static)
+## Load terrain variables (static) ----
 bathy_layers <- list.files(path = "data/raw/BNAM_Data_From_Cam/Bathymetry_Terrain_From_NAFO_SharePoint", 
                            pattern = "\\.tif$", full.names = TRUE) %>%
   set_names(., nm = basename(.) %>% tools::file_path_sans_ext()) %>%
@@ -20,7 +18,7 @@ bathy_layers <- list.files(path = "data/raw/BNAM_Data_From_Cam/Bathymetry_Terrai
 names(bathy_layers) <- gsub("GEBCO2024_FS005_StudyArea_","",names(bathy_layers))
 names(bathy_layers)[1] <- "FS005"
 
-# Load BNAM layers (will use these to form predictions, decide which variables to select)
+## Load BNAM layers (will use these to form predictions, decide which variables to select) ----
 bnam_layers <- list.files("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint", 
                           pattern = "\\.tif$", full.names = TRUE) %>%
   set_names(., nm = basename(.) %>% tools::file_path_sans_ext()) %>%
@@ -53,24 +51,33 @@ bnam_layers <- bnam_layers[!is.na(names(bnam_layers))]
 
 
 # Extract predictor values at response locations ----
-pred_df <- lapply(c(bathy_layers, bnam_layers), function(layer) {
+bnam_pred_df <- lapply(c(bathy_layers, bnam_layers), function(layer) {
   terra::extract(layer, 
                  select(resp_df, Start_Long_DD, Start_Lat_DD)) %>%
     select(-ID)
 }) %>%
   bind_cols()
-colnames(pred_df) <- c(names(bathy_layers), names(bnam_layers))
+colnames(bnam_pred_df) <- c(names(bathy_layers), names(bnam_layers))
 
 
 # Combine predictor and response dataframes ----
-comb_df <- bind_cols(resp_df, pred_df) %>%
-  mutate(VME_P_A = factor(VME_P_A, levels = c(0, 1), labels = c("Absence", "Presence")))
-
-# Remove NA
-comb_df_compl <- comb_df %>%
+bnam_df <- bind_cols(resp_df, bnam_pred_df) %>%
+  mutate(VME_P_A = factor(VME_P_A, levels = c(0, 1), labels = c("Absence", "Presence"))) %>%
   drop_na()
-rm(comb_df)
 
-# comb_df_miss <- comb_df[which(!complete.cases(comb_df)),]
+# bnam_df_miss <- bnam_df[which(!complete.cases(bnam_df)),]  # run this before drop_na()
+
+
+# Load ensembled CMIP data ----
+cmip_df <- readRDS("data/processed/ens_df.rds") %>%
+  pivot_wider(names_from = season, values_from = mldavg, names_glue = {"{.value}_{season}"}) %>%
+  mutate(mldavg = coalesce(mldavg_W,mldavg_F,mldavg_Su,mldavg_Sp)) %>%
+  select(-dep)  # will use terrain variable FS005 for depth instead
+  
+
+# Load selected terrain static variables ----
+terrain_topvars <- read_csv("data/processed/VarImp_2024_2025_SCR_02_TopStaticVarsByVME.csv", show_col_types = FALSE)
+
+
 
 

@@ -79,7 +79,7 @@ predictorfiles = list.files(path = rasterdir,
                             full.names = TRUE,
                             recursive = TRUE)
 # Now read the raster data (create a raster stack)
-predictors = stack(predictorfiles,RAT=F)
+predictors = raster::stack(predictorfiles,RAT=F)
 # Confirm raster stack with all raster layers present
 predictors
 names(predictors)
@@ -129,7 +129,7 @@ response = responsedata[complete.cases(responsedata),]
 # Define coordinate system
 pprj = CRS('+proj=longlat +datum=WGS84 +no_defs')
 # Convert to sf
-response_sp = st_as_sf(response,coords=c('x','y'),crs=pprj)
+response_sp = sf::st_as_sf(response,coords=c('x','y'),crs=sf::st_crs(4326))
 response_sp
 
 # Check response and environmental variables are in the same coordinate system
