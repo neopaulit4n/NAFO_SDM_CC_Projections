@@ -701,7 +701,7 @@ ROutput <- stack()
 
 ### Calculate most frequent class and its frequency
 # Most frequent class - change to 0 and 1 for absence and presence
-MaxClass <- modal(cvpred,freq=FALSE)
+MaxClass <- modal(cvpred,freq=FALSE)  # modal() from raster/terra function
 ROutput <- addLayer(ROutput,MaxClass)
 # Frequency of most frequent class (fraction of runs)
 MaxClassF <- modal(cvpred,freq=TRUE)/nruns
