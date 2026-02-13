@@ -56,6 +56,291 @@ ggplot() +
   labs(title = paste("Predicted Presence/Absence for", vme_group),
        fill = "Prediction", x = "Longitude", y = "Latitude")
 
+
+
+# Load previous tiff files to compare ----
+sdm2024_pred_stack <- c(
+  MaxClass = terra::rast("output/SDM2024_orig/Black Coral/BlackCorals_raster_output_sens_spe/BlackCorals_raster_output_maxclass.tif") %>%
+    terra::as.factor() %>%
+    terra::project(terra::crs(rf_pred_stack)),
+  MaxClassF = terra::rast("output/SDM2024_orig/Black Coral/BlackCorals_raster_output_sens_spe/BlackCorals_raster_output_maxclassf.tif") %>%
+    terra::project(terra::crs(rf_pred_stack)),
+  # AvgProb = terra::rast("output/SDM2024_orig/Black Coral/BlackCorals_raster_output_sens_spe/BlackCorals_raster_output_avgprob.tif"),
+  MaxClassAvgProb = terra::rast("output/SDM2024_orig/Black Coral/BlackCorals_raster_output_sens_spe/BlackCorals_raster_output_maxclassaveprob.tif") %>%
+    terra::project(terra::crs(rf_pred_stack)),
+  CombConf = terra::rast("output/SDM2024_orig/Black Coral/BlackCorals_raster_output_sens_spe/BlackCorals_raster_output_combconf.tif") %>%
+    terra::project(terra::crs(rf_pred_stack)),
+  NumPres = terra::rast("output/SDM2024_orig/Black Coral/BlackCorals_raster_output_sens_spe/BlackCoralsVME_raster_output_cvsum.tif") %>%
+    terra::project(terra::crs(rf_pred_stack))
+  )
+
+# Define plot extents
+plot_xlim <- terra::ext(fold_predictions_spatial_reclass[[1]])[1:2]
+plot_ylim <- terra::ext(fold_predictions_spatial_reclass[[1]])[3:4]
+
+# Most frequent class (MaxClass) ----
+plot_sdm2024_MaxClass <- ggplot() +
+  theme_classic() +
+  tidyterra::geom_spatraster(data = sdm2024_pred_stack$MaxClass, na.rm = TRUE) +
+  scale_fill_manual(values = c("0" = "#ffebcd", "1" = "#b87333"),
+                    na.value = "transparent",
+                    na.translate = FALSE,  # remove NAs from legend
+                    labels = c("0" = "Absence", "1" = "Presence")) +
+  geom_contour(data = bathy_noaa, 
+               aes(x = x, y = y, z = z, fill = NULL), 
+               breaks = seq(from = -50, to = -5000, by = -250),
+               color = "darkgrey", 
+               linewidth = 0.3, 
+               alpha = 0.4) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.title = element_blank()) +
+  scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
+  scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
+  labs(title = "SDM2024\nBlackCorals\nMaxClass")
+
+plot_new_MaxClass <- ggplot() +
+  theme_classic() +
+  tidyterra::geom_spatraster(data = rf_pred_comp$MaxClass, na.rm = TRUE) +
+  scale_fill_manual(values = c("0" = "#ffebcd", "1" = "#b87333"),
+                    na.value = "transparent",
+                    na.translate = FALSE,  # remove NAs from legend
+                    labels = c("0" = "Absence", "1" = "Presence")) +
+  geom_contour(data = bathy_noaa, 
+               aes(x = x, y = y, z = z, fill = NULL), 
+               breaks = seq(from = -50, to = -5000, by = -250),
+               color = "darkgrey", 
+               linewidth = 0.3, 
+               alpha = 0.4) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.title = element_blank()) +
+  scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
+  scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
+  labs(title = "New | Period 1 | SSP 2-4.5 | SelVars\nBlackCorals\nMaxClass")
+
+cowplot::plot_grid(plot_sdm2024_MaxClass, plot_new_MaxClass, 
+                   # labels = c("SDM2024 MaxClass", "New MaxClass"), 
+                   ncol = 2,
+                   align = "hv")
+ggsave("output/01_BlackCorals_RasterMetrics_OldVSNew/MaxClass_comparison.png", 
+                width = 10, height = 5, dpi = 300)
+
+# Frequency of most frequent class (fraction of runs) ----
+plot_sdm2024_MaxClassF <- ggplot() +
+  theme_classic() +
+  tidyterra::geom_spatraster(data = sdm2024_pred_stack$MaxClassF, na.rm = TRUE) +
+  scale_fill_binned(
+    breaks = c(0.5,0.6,0.8,0.9,1),
+    palette = c("#b06500", "#e5aa70", "#96c8a2", "#008b8b"),
+    guide = guide_coloursteps(),
+    na.value = "transparent"
+  ) +
+  geom_contour(data = bathy_noaa, 
+               aes(x = x, y = y, z = z, fill = NULL), 
+               breaks = seq(from = -50, to = -5000, by = -250),
+               color = "darkgrey", 
+               linewidth = 0.3, 
+               alpha = 0.4) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.title = element_blank()) +
+  scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
+  scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
+  labs(title = "SDM2024\nBlackCorals\nMaxClassF")
+
+plot_new_MaxClassF <- ggplot() +
+  theme_classic() +
+  tidyterra::geom_spatraster(data = rf_pred_comp$MaxClassF, na.rm = TRUE) +
+  scale_fill_binned(
+    breaks = c(0.5,0.6,0.8,0.9,1),
+    palette = c("#b06500", "#e5aa70", "#96c8a2", "#008b8b"),
+    guide = guide_coloursteps(),
+    na.value = "transparent"
+  ) +
+  geom_contour(data = bathy_noaa, 
+               aes(x = x, y = y, z = z, fill = NULL), 
+               breaks = seq(from = -50, to = -5000, by = -250),
+               color = "darkgrey", 
+               linewidth = 0.3, 
+               alpha = 0.4) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.title = element_blank()) +
+  scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
+  scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
+  labs(title = "New | Period 1 | SSP 2-4.5 | SelVars\nBlackCorals\nMaxClassF")
+
+cowplot::plot_grid(plot_sdm2024_MaxClassF, plot_new_MaxClassF, 
+                   # labels = c("SDM2024 MaxClassF", "New MaxClassF"), 
+                   ncol = 2,
+                   align = "hv")
+ggsave("output/01_BlackCorals_RasterMetrics_OldVSNew/MaxClassF_comparison.png", 
+       width = 10, height = 5, dpi = 300)
+
+# Average probability of classes ----
+# plot_sdm2024_AvgProb <- ggplot() +
+#   theme_classic() +
+#   tidyterra::geom_spatraster(data = sdm2024_pred_stack$AvgProb, na.rm = TRUE) +
+#   scale_fill_continuous(palette = c("white","blue")) +
+#   theme(legend.position = "bottom",
+#         legend.title = element_blank())
+# 
+plot_new_AvgProb_Abs <- ggplot() +
+  theme_classic() +
+  tidyterra::geom_spatraster(data = rf_pred_comp$AvgProb[[1]], na.rm = TRUE) +
+  scale_fill_continuous(palette = c("white","blue")) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank())
+plot_new_AvgProb_Pres <- ggplot() +
+  theme_classic() +
+  tidyterra::geom_spatraster(data = rf_pred_comp$AvgProb[[2]], na.rm = TRUE) +
+  scale_fill_continuous(palette = c("white","blue")) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank())
+cowplot::plot_grid(plot_new_AvgProb_Abs, plot_new_AvgProb_Pres, 
+                   labels = c("New AvgProb Absence", "New AvgProb Presence"), 
+                   ncol = 2)
+# 
+# cowplot::plot_grid(plot_sdm2024_AvgProb, plot_new_AvgProb, 
+#                    labels = c("SDM2024 AvgProb", "New AvgProb"), 
+#                    ncol = 2)
+
+# Average probability of maximum frequency class ----
+plot_sdm2024_MaxClassAvgProb <- ggplot() +
+  theme_classic() +
+  tidyterra::geom_spatraster(data = sdm2024_pred_stack$MaxClassAvgProb, na.rm = TRUE) +
+  scale_fill_gradient2(low = "#1164b4", mid = "#ffff99", high = "#e03c31", midpoint = 0.5, na.value = "transparent") +
+  geom_contour(data = bathy_noaa, 
+               aes(x = x, y = y, z = z, fill = NULL), 
+               breaks = seq(from = -50, to = -5000, by = -250),
+               color = "darkgrey", 
+               linewidth = 0.3, 
+               alpha = 0.4) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.title = element_blank()) +
+  scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
+  scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
+  labs(title = "SDM2024\nBlackCorals\nMaxClassAvgProb")
+
+plot_new_MaxClassAvgProb <- ggplot() +
+  theme_classic() +
+  tidyterra::geom_spatraster(data = rf_pred_comp$MaxClassAvgProb, na.rm = TRUE) +
+  scale_fill_gradient2(low = "#1164b4", mid = "#ffff99", high = "#e03c31", midpoint = 0.5, na.value = "transparent") +
+  geom_contour(data = bathy_noaa, 
+               aes(x = x, y = y, z = z, fill = NULL), 
+               breaks = seq(from = -50, to = -5000, by = -250),
+               color = "darkgrey", 
+               linewidth = 0.3, 
+               alpha = 0.4) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.title = element_blank()) +
+  scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
+  scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
+  labs(title = "New | Period 1 | SSP 2-4.5 | SelVars\nBlackCorals\nMaxClassAvgProb")
+  
+cowplot::plot_grid(plot_sdm2024_MaxClassAvgProb, plot_new_MaxClassAvgProb, 
+                   # labels = c("SDM2024 MaxClassAvgProb", "New MaxClassAvgProb"), 
+                   align = "hv",
+                   ncol = 2)
+ggsave("output/01_BlackCorals_RasterMetrics_OldVSNew/MaxClassAvgProb_comparison.png", 
+       width = 10, height = 5, dpi = 300)
+
+# Combined confidence metric ----
+plot_sdm2024_CombConf <- ggplot() +
+  theme_classic() +
+  tidyterra::geom_spatraster(data = sdm2024_pred_stack$CombConf, na.rm = TRUE) +
+  scale_fill_continuous(palette = "YlGn", na.value = "transparent") +
+  geom_contour(data = bathy_noaa, 
+               aes(x = x, y = y, z = z, fill = NULL), 
+               breaks = seq(from = -50, to = -5000, by = -250),
+               color = "darkgrey", 
+               linewidth = 0.3, 
+               alpha = 0.4) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.title = element_blank()) +
+  scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
+  scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
+  labs(title = "SDM2024\nBlackCorals\nCombConf")
+
+plot_new_CombConf <- ggplot() +
+  theme_classic() +
+  tidyterra::geom_spatraster(data = rf_pred_comp$CombConf, na.rm = TRUE) +
+  scale_fill_continuous(palette = "YlGn", na.value = "transparent") +
+  geom_contour(data = bathy_noaa, 
+               aes(x = x, y = y, z = z, fill = NULL), 
+               breaks = seq(from = -50, to = -5000, by = -250),
+               color = "darkgrey", 
+               linewidth = 0.3, 
+               alpha = 0.4) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.title = element_blank()) +
+  scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
+  scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
+  labs(title = "New | Period 1 | SSP 2-4.5 | SelVars\nBlackCorals\nCombConf")
+
+cowplot::plot_grid(plot_sdm2024_CombConf, plot_new_CombConf, 
+                   # labels = c("SDM2024 CombConf", "New CombConf"), 
+                   align = "hv",
+                   ncol = 2)
+ggsave("output/01_BlackCorals_RasterMetrics_OldVSNew/CombConf_comparison.png", 
+       width = 10, height = 5, dpi = 300)
+
+# Number of models predicting presence ----
+# my_palette <- c("darkblue", paletteer::paletteer_d("colorBlindness::Blue2Orange10Steps", 10))
+
+plot_sdm2024_NumPres <- ggplot() +
+  theme_classic() +
+  tidyterra::geom_spatraster(data = sdm2024_pred_stack$NumPres, na.rm = TRUE) +
+  scale_fill_continuous(palette = "YlGnBu", na.value = "transparent",
+                        breaks = 0:10) +
+  geom_contour(data = bathy_noaa, 
+               aes(x = x, y = y, z = z, fill = NULL), 
+               breaks = seq(from = -50, to = -5000, by = -250),
+               color = "darkgrey", 
+               linewidth = 0.3, 
+               alpha = 0.4) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.title = element_blank()) +
+  scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
+  scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
+  labs(title = "SDM2024\nBlackCorals\nNumPres")
+
+plot_new_NumPres <- ggplot() +
+  theme_classic() +
+  tidyterra::geom_spatraster(data = rf_pred_comp$NumPres, na.rm = TRUE) +
+  scale_fill_continuous(palette = "YlGnBu", na.value = "transparent",
+                        breaks = 0:10) +
+  geom_contour(data = bathy_noaa, 
+               aes(x = x, y = y, z = z, fill = NULL), 
+               breaks = seq(from = -50, to = -5000, by = -250),
+               color = "darkgrey", 
+               linewidth = 0.3, 
+               alpha = 0.4) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.title = element_blank()) +
+  scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
+  scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
+  labs(title = "New | Period 1 | SSP 2-4.5 | SelVars\nBlackCorals\nNumPres")
+
+cowplot::plot_grid(plot_sdm2024_NumPres, plot_new_NumPres, 
+                   # labels = c("SDM2024 NumPres", "New NumPres"), 
+                   align = "hv",
+                   ncol = 2)
+ggsave("output/01_BlackCorals_RasterMetrics_OldVSNew/NumPres_comparison.png", 
+       width = 10, height = 5, dpi = 300)
+
+
+
+
+
+
 transform_cmip_dep_to_raster <- function() {
   
   # Select a layer of data to raster

@@ -305,144 +305,288 @@ selected_vme_vars <- select_vme_vars(vme_df[,-1], vme_group = vme_group, cor_thr
 vme_df_sel <- vme_df %>%
   select(all_of(c("VME_P_A", selected_vme_vars$selected_vars)))
 
-# Model building with selected variables ----
+
+# Model building ----
 
 # Create the 10 folds
 set.seed(411)
 folds <- caret::createFolds(vme_df$VME_P_A, k = 10, returnTrain = TRUE)
 
-# Custom function with ALL metrics
-rf_metrics <- function(data, lev = NULL, model = NULL) {
-  
-  # Extract predicted probabilities and observed values
-  # data$pred is the class prediction, data$obs is the observed
-  # For binary classification, we need the probability of the positive class
-  pred_prob <- data[, lev[2]]  # probability of positive class
-  obs_numeric <- ifelse(data$obs == lev[2], 1, 0)
-  
-  # Create dataframe for optimal.thresholds function
-  # Format: ID, observed (0/1), predicted probability
-  threshold_data <- data.frame(
-    id = 1:nrow(data),
-    PA = obs_numeric,
-    predprob = pred_prob
-  )
-  
-  # Calculate optimal threshold using Sens=Spec method
-  opttsh <- PresenceAbsence::optimal.thresholds(
-    threshold_data[, c("id", "PA", "predprob")],
-    opt.methods = 'Sens=Spec'
-  ) %>%
-    pull(predprob)
-  
-  # Apply optimal threshold to create new predictions
-  optimal_pred <- ifelse(pred_prob >= opttsh, lev[2], lev[1])
-  optimal_pred <- factor(optimal_pred, levels = lev)
-  
-  # Calculate confusion matrix using optimal threshold predictions
-  cm <- caret::confusionMatrix(optimal_pred, data$obs, positive = lev[2])
-  
-  # Extract metrics
-  metrics <- unlist(c(cm$overall, cm$byClass))
-  metrics["TSS"] <- cm$byClass["Sensitivity"] + cm$byClass["Specificity"] - 1
-  metrics["OptThreshold"] <- opttsh
-  return(metrics)
-}
+# Initialize storage for fold metrics
+fold_metrics_list <- list()
+fold_predictions_spatial <- list()
+fold_predictions_spatial_reclass <- list()
 
-train_control <- caret::trainControl(
-  method = "cv",
-  number = 10,
-  index = folds,
-  classProbs = TRUE,  # get probability predictions
-  savePredictions = "all",  # save all CV predictions
-  returnResamp = "all",
-  summaryFunction = rf_metrics
-)
-
-# Train the model with cross-validation
-set.seed(411)
-rf_model_selvars <- caret::train(
-  VME_P_A ~ .,
-  data = vme_df_sel,
-  method = "rf",
-  trControl = train_control,
-  ntree = 500,
-  strata = vme_df$VME_P_A,
-  replace = FALSE,
-  importance = TRUE,
-  # Prevent tuning - use single mtry value - same one as original code
-  tuneGrid = data.frame(mtry = floor(sqrt(ncol(vme_df) - 1)))
-)
-
-set.seed(411)
-rf_model_allvars <- caret::train(
-  VME_P_A ~ .,
-  data = vme_df,
-  method = "rf",
-  trControl = train_control,
-  ntree = 500,
-  strata = vme_df$VME_P_A,  # ensures presence/absence ratio remains constant
-  replace = FALSE,
-  importance = TRUE,
-  # Prevent tuning - use single mtry value - same one as original code
-  tuneGrid = data.frame(mtry = floor(sqrt(ncol(vme_df) - 1)))
-)
-
-# Extract metrics
-rf_metrics_results_selvars <- rf_model_selvars$results
-rf_metrics_results_allvars <- rf_model_allvars$results
-
-# Extract variable importance
-rf_varimp <- randomForest::importance(rf_model$finalModel) %>%
-  as.data.frame() %>%
-  rownames_to_column(var = "Variable") %>%
-  arrange(desc(MeanDecreaseGini))
-
-
-# Predict on CMIP + bathy layers for whole area ----
+# Prepare variable layer rasters for spatial predictions
 vme_layers <- c(bathy_layers[vme_terrain_vars],
                 compact(cmip_layers[selected_vme_vars$selected_vars]))
 vme_layers_rast <- terra::rast(vme_layers)
 
-rf_pred <- terra::predict(vme_layers_rast, rf_model_selvars$finalModel, 
-                          type = "prob", na.rm = TRUE, index = 1:2)
+for (i in 1:10) {
+  cat("Training fold", i, "\n")
+  
+  # Get fold indices
+  rf_train_idx <- folds[[i]]
+  rf_test_idx <- setdiff(1:nrow(vme_df_sel), rf_train_idx)
+  
+  # Train model on this fold
+  set.seed(411)
+  rf_fold_model <- randomForest::randomForest(
+    VME_P_A ~ .,
+    data = vme_df_sel[rf_train_idx, ],
+    ntree = 500,
+    mtry = floor(sqrt(ncol(vme_df_sel) - 1)),
+    strata = vme_df_sel$VME_P_A[rf_train_idx],
+    replace = FALSE,
+    importance = TRUE
+  )
+  
+  # Get predictions on held-out test data
+  rf_test_pred_prob <- predict(rf_fold_model, 
+                            newdata = vme_df_sel[rf_test_idx, ], 
+                            type = "prob")
+  
+  # Extract probability of positive class (assuming second level)
+  lev <- levels(vme_df_sel$VME_P_A)
+  pred_prob <- rf_test_pred_prob[, lev[2]]
+  obs_numeric <- ifelse(vme_df_sel$VME_P_A[rf_test_idx] == lev[2], 1, 0)
+  
+  # Calculate optimal threshold using Sens=Spec method
+  threshold_df <- data.frame(
+    id = 1:length(rf_test_idx),
+    PA = ifelse(vme_df_sel$VME_P_A[rf_test_idx] == lev[2], 1, 0),
+    predprob = rf_test_pred_prob[, lev[2]]
+  )
+  
+  opttsh <- PresenceAbsence::optimal.thresholds(
+    threshold_df,
+    opt.methods = "Sens=Spec"  # if wanted to also test prevalence: c("Sens=Spec", "ObsPrev")
+  ) %>%
+    pull(predprob)
+  
+  # Apply optimal threshold
+  optimal_pred <- ifelse(pred_prob >= opttsh, lev[2], lev[1])
+  optimal_pred <- factor(optimal_pred, levels = lev)
+  obs_factor <- vme_df_sel$VME_P_A[rf_test_idx]
+  
+  # Calculate confusion matrix
+  cm <- caret::confusionMatrix(optimal_pred, obs_factor, positive = lev[2])
+  
+  # Extract and store metrics
+  metrics <- unlist(c(cm$overall, cm$byClass))
+  metrics["TSS"] <- cm$byClass["Sensitivity"] + cm$byClass["Specificity"] - 1
+  metrics["OptThreshold"] <- opttsh
+  metrics["Fold"] <- i
+  
+  fold_metrics_list[[i]] <- metrics
+  
+  # Spatial predictions for this fold
+  fold_predictions_spatial[[i]] <- terra::predict(
+    vme_layers_rast,
+    rf_fold_model,
+    type = 'prob',
+    na.rm = TRUE,
+    index = 1:2
+  )
+  
+  # Convert predictions to presence/absence using optimal threshold
+  fold_predictions_spatial_reclass[[i]] <- terra::classify(
+    fold_predictions_spatial[[i]][[2]], 
+    rcl = matrix(c(-Inf, opttsh, 0,
+                    opttsh, Inf, 1), 
+                  ncol = 3, byrow = TRUE)
+    )  # %>%
+  #   terra::as.factor()
+}
 
-# Convert probability to presence/absence using optimal threshold
+# Combine all fold metrics into a dataframe
+fold_metrics_df <- do.call(rbind, lapply(fold_metrics_list, function(x) {
+  data.frame(t(x))
+})) %>%
+  pivot_longer(cols = -"Fold", names_to = "metric", values_to = "value")
 
-## Using sens=spec threshold
-opt_threshold <- rf_metrics_results_selvars$OptThreshold
-rf_pred_pa_ss <- terra::classify(rf_pred[[2]], 
-                              # from-to-becomes
-                              rcl = matrix(c(-Inf, opt_threshold, 0,
-                                             opt_threshold, Inf, 1), 
-                                            ncol = 3, byrow = TRUE)) %>%
-  # Change to factor
-  terra::as.factor()
-
-terra::plot(rf_pred_pa_ss)
-
-## Using prevalence as threshold
-prev <- sum(vme_df_sel$VME_P_A == "Presence") / nrow(vme_df_sel)
-rf_pred_pa_prev <- terra::classify(rf_pred[[2]],
-                                   rcl = matrix(c(-Inf, prev, 0,
-                                            prev, Inf, 1),
-                                          ncol = 3, byrow = TRUE)) %>%
-  # Change to factor
-  terra::as.factor()
+fold_metrics_summary_df <- fold_metrics_df %>%
+  group_by(metric) %>%
+  summarise(mean_value = mean(value, na.rm = TRUE),
+            sd_value = sd(value, na.rm = TRUE),
+            .groups = "drop")
 
 
-# Most frequent class
-rf_pred_pa_mfc <- terra::modal(rf_pred_pa_ss, freq = FALSE)
-terra::plot(rf_pred_pa_mfc)
+# Create spatial predictions stack
+rf_pred_stack <- terra::rast(fold_predictions_spatial_reclass)
+# ggplot() +
+#   theme_classic() +
+#   tidyterra::geom_spatraster(data = rf_pred_stack[[1]], na.rm = TRUE) +
+#   labs(title = paste("Predicted Presence/Absence for Fold", 1),
+#        x = "Longitude", y = "Latitude")
+
+# Calculate spatial metrics across folds ----
+## Most frequent class (0/1)
+rf_res_MaxClass <- terra::modal(rf_pred_stack, freq = FALSE)
+
+## Frequency of most frequent class (fraction of runs)
+# rf_res_MaxClassF <- terra::modal(rf_pred_stack, freq = TRUE) / 10  # old method - doesn't work
+rf_res_freq_count <- sum(rf_pred_stack == rf_res_MaxClass, na.rm = TRUE)
+rf_res_MaxClassF <- rf_res_freq_count / 10
+
+## Average probability of classes
+# rf_res_AvgProb <- terra::app(terra::rast(fold_predictions_spatial), mean, na.rm = TRUE)
+rf_res_AvgProb <- Reduce("+", fold_predictions_spatial) / 10
+
+## Average probability of maximum frequency class
+rf_res_MaxClassAvgProb <- terra::selectRange(rf_res_AvgProb, rf_res_MaxClass + 1)
+
+## Combined confidence metric
+rf_res_CombConf <- rf_res_MaxClassF * rf_res_MaxClassAvgProb
+
+## Number of models predicting presence
+rf_res_NumPres <- terra::app(rf_pred_stack, sum, na.rm = TRUE)
+
+## Create stack of computed raster metrics across folds
+rf_pred_comp <- c(
+  MaxClass = terra::as.factor(rf_res_MaxClass),
+  MaxClassF = rf_res_MaxClassF,
+  AvgProb = rf_res_AvgProb,
+  MaxClassAvgProb = rf_res_MaxClassAvgProb,
+  CombConf = rf_res_CombConf,
+  NumPres = rf_res_NumPres
+)
+
+rm(list = ls(pattern = "rf_res_"))
 
 
-rf_pred_pa_mfc_f <- terra::modal(rf_pred, freq = TRUE)
-
-
-
-
-# Average probability of maximum frequency class across folds
-# rf_pred_pa_mfc_prob <- rf_pred[[2]] * (rf_pred_pa_mfc_f[[1]] / 10)
-
-terra::plot(rf_pred)
+# # Custom function with ALL metrics
+# rf_metrics <- function(data, lev = NULL, model = NULL) {
+#   
+#   # Extract predicted probabilities and observed values
+#   # data$pred is the class prediction, data$obs is the observed
+#   # For binary classification, we need the probability of the positive class
+#   pred_prob <- data[, lev[2]]  # probability of positive class
+#   obs_numeric <- ifelse(data$obs == lev[2], 1, 0)
+#   
+#   # Create dataframe for optimal.thresholds function
+#   # Format: ID, observed (0/1), predicted probability
+#   threshold_data <- data.frame(
+#     id = 1:nrow(data),
+#     PA = obs_numeric,
+#     predprob = pred_prob
+#   )
+#   
+#   # Calculate optimal threshold using Sens=Spec method
+#   opttsh <- PresenceAbsence::optimal.thresholds(
+#     threshold_data[, c("id", "PA", "predprob")],
+#     opt.methods = 'Sens=Spec'
+#   ) %>%
+#     pull(predprob)
+#   
+#   # Apply optimal threshold to create new predictions
+#   optimal_pred <- ifelse(pred_prob >= opttsh, lev[2], lev[1])
+#   optimal_pred <- factor(optimal_pred, levels = lev)
+#   
+#   # Calculate confusion matrix using optimal threshold predictions
+#   cm <- caret::confusionMatrix(optimal_pred, data$obs, positive = lev[2])
+#   
+#   # Extract metrics
+#   metrics <- unlist(c(cm$overall, cm$byClass))
+#   metrics["TSS"] <- cm$byClass["Sensitivity"] + cm$byClass["Specificity"] - 1
+#   metrics["OptThreshold"] <- opttsh
+#   return(metrics)
+# }
+# 
+# train_control <- caret::trainControl(
+#   method = "cv",
+#   number = 10,
+#   index = folds,
+#   classProbs = TRUE,  # get probability predictions
+#   savePredictions = "all",  # save all CV predictions
+#   returnResamp = "all",
+#   summaryFunction = rf_metrics
+# )
+# 
+# # Train the model with cross-validation
+# set.seed(411)
+# rf_model_selvars <- caret::train(
+#   VME_P_A ~ .,
+#   data = vme_df_sel,
+#   method = "rf",
+#   trControl = train_control,
+#   ntree = 500,
+#   strata = vme_df$VME_P_A,
+#   replace = FALSE,
+#   importance = TRUE,
+#   # Prevent tuning - use single mtry value - same one as original code
+#   tuneGrid = data.frame(mtry = floor(sqrt(ncol(vme_df) - 1)))
+# )
+# 
+# set.seed(411)
+# rf_model_allvars <- caret::train(
+#   VME_P_A ~ .,
+#   data = vme_df,
+#   method = "rf",
+#   trControl = train_control,
+#   ntree = 500,
+#   strata = vme_df$VME_P_A,  # ensures presence/absence ratio remains constant
+#   replace = FALSE,
+#   importance = TRUE,
+#   # Prevent tuning - use single mtry value - same one as original code
+#   tuneGrid = data.frame(mtry = floor(sqrt(ncol(vme_df) - 1)))
+# )
+# 
+# # Extract metrics
+# rf_metrics_results_selvars <- rf_model_selvars$results
+# rf_metrics_results_allvars <- rf_model_allvars$results
+# 
+# # Extract variable importance
+# rf_varimp <- randomForest::importance(rf_model$finalModel) %>%
+#   as.data.frame() %>%
+#   rownames_to_column(var = "Variable") %>%
+#   arrange(desc(MeanDecreaseGini))
+# 
+# 
+# # Predict on CMIP + bathy layers for whole area ----
+# vme_layers <- c(bathy_layers[vme_terrain_vars],
+#                 compact(cmip_layers[selected_vme_vars$selected_vars]))
+# vme_layers_rast <- terra::rast(vme_layers)
+# 
+# rf_pred <- terra::predict(vme_layers_rast, rf_model_selvars$finalModel, 
+#                           type = "prob", na.rm = TRUE, index = 1:2)
+# 
+# # Convert probability to presence/absence using optimal threshold
+# 
+# ## Using sens=spec threshold
+# opt_threshold <- rf_metrics_results_selvars$OptThreshold
+# rf_pred_pa_ss <- terra::classify(rf_pred[[2]], 
+#                               # from-to-becomes
+#                               rcl = matrix(c(-Inf, opt_threshold, 0,
+#                                              opt_threshold, Inf, 1), 
+#                                             ncol = 3, byrow = TRUE)) %>%
+#   # Change to factor
+#   terra::as.factor()
+# 
+# terra::plot(rf_pred_pa_ss)
+# 
+# ## Using prevalence as threshold
+# prev <- sum(vme_df_sel$VME_P_A == "Presence") / nrow(vme_df_sel)
+# rf_pred_pa_prev <- terra::classify(rf_pred[[2]],
+#                                    rcl = matrix(c(-Inf, prev, 0,
+#                                             prev, Inf, 1),
+#                                           ncol = 3, byrow = TRUE)) %>%
+#   # Change to factor
+#   terra::as.factor()
+# 
+# 
+# # Most frequent class
+# rf_pred_pa_mfc <- terra::modal(rf_pred_pa_ss, freq = FALSE)
+# terra::plot(rf_pred_pa_mfc)
+# 
+# 
+# rf_pred_pa_mfc_f <- terra::modal(rf_pred, freq = TRUE)
+# 
+# 
+# 
+# 
+# # Average probability of maximum frequency class across folds
+# # rf_pred_pa_mfc_prob <- rf_pred[[2]] * (rf_pred_pa_mfc_f[[1]] / 10)
+# 
+# terra::plot(rf_pred)
 
