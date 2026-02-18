@@ -15,7 +15,8 @@ cmip_df_period_ssp <- cmip_df %>%
   # summarise(across(sobavg:mldavg, \(x) mean(x, na.rm = TRUE)), .groups = "drop")  
   summarise(across(sobavg:mldavg, list(mean = ~mean(.x, na.rm = TRUE),
                                        min = ~min(.x, na.rm = TRUE),
-                                       max = ~max(.x, na.rm = TRUE)),
+                                       max = ~max(.x, na.rm = TRUE), 
+                                       range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)),
                    .names = "{col}_{fn}")) %>%
   ungroup() %>%
   # Only keep max mldavg
@@ -101,7 +102,7 @@ cmip_comb_df <- bind_cols(resp_df, cmip_pred_df) %>%
 # 4: VIF remaining variables
 
 
-## Preliminary RF model test ----
+## Preliminary RF model ----
 vme_group <- "black_corals"
 vme_terrain_vars <- filter(terrain_topvars, VME_Group == vme_group) %>%
   pull(variable)
