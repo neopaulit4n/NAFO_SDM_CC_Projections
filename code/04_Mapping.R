@@ -1,61 +1,59 @@
 
 # Load mapping layers ----
 
-# Load NOAA bathymetry layer for contours
-bathy_noaa <- readRDS("data/raw/Mapping_Layers/bathy_noaa.rds")
+# # Load NOAA bathymetry layer for contours
+# bathy_noaa <- readRDS("data/raw/Mapping_Layers/bathy_noaa.rds")
 
-# Load Canadian EEZ boundary from shapefile
-eez <- sf::st_read("data/raw/Mapping_Layers/eez/eez.shp") %>%
-  sf::st_as_sf(crs = st_crs(4326)) %>%
-  sf::st_make_valid() %>%
-  sf::st_union() %>%
-  sf::st_cast("POLYGON") %>%
-  sf::st_cast("LINESTRING") %>%
-  # Crop by sa_lims
-  sf::st_crop(xmin = sa_lims[1]-0.09, xmax = sa_lims[2]+0.09, 
-              ymin = sa_lims[3]-0.09, ymax = sa_lims[4]+0.09)
+# # Load Canadian EEZ boundary from shapefile
+# # eez <- sf::st_read("data/raw/Mapping_Layers/eez/eez.shp") %>%
+# #   sf::st_as_sf(crs = st_crs(4326)) %>%
+# #   sf::st_make_valid() %>%
+# #   sf::st_union() %>%
+# #   sf::st_cast("POLYGON") %>%
+# #   sf::st_cast("LINESTRING") %>%
+# #   sf::st_crop(xmin = sa_lims[1]-0.09, xmax = sa_lims[2]+0.09, 
+# #               ymin = sa_lims[3]-0.09, ymax = sa_lims[4]+0.09)
 
-# Load small fishing footprint
-footprint <- sf::st_read("data/raw/Mapping_Layers/FootprintProjectedShp/FootprintAreaProjected.shp") %>%
-  sf::st_as_sf(crs = st_crs(4326)) %>%
-  sf::st_make_valid() %>%
-  sf::st_union() %>%
-  sf::st_cast("LINESTRING")
+# # Load small fishing footprint
+# footprint <- sf::st_read("data/raw/Mapping_Layers/FootprintProjectedShp/FootprintAreaProjected.shp") %>%
+#   sf::st_as_sf(crs = st_crs(4326)) %>%
+#   sf::st_make_valid() %>%
+#   sf::st_union() %>%
+#   sf::st_cast("LINESTRING")
 
 
 # Map of overall area and zoomed in plot of NAFO boundary ----
-ggplot() +
-  theme_classic() +
-  # geom_sf(data = sa, aes(colour = "NAFO Study Area"), fill = "lightblue", alpha = 0.8, show.legend = "line") +
-  tidyterra::geom_spatraster(data = rf_pred_pa, na.rm = TRUE) +
-  scale_fill_manual(values = c("0" = "#ffebcd", "1" = "#b87333"),
-                    na.value = "transparent",
-                    na.translate = FALSE,  # remove NAs from legend
-                    labels = c("0" = "Absence", "1" = "Presence")) +
-  geom_sf(data = footprint, aes(colour = "NAFO Fishing Footprint"), show.legend = "line") +  
-  geom_sf(data = eez, aes(colour = "Canadian EEZ"), inherit.aes = FALSE, linewidth = 1, show.legend = "line") +
-  # Adjust colours
-  scale_colour_manual(name = "Boundary", 
-                      values = c("NAFO Study Area" = "black", "NAFO Fishing Footprint" = "blue", "Canadian EEZ" = "red")) +
-  geom_contour(data = bathy_noaa, 
-               aes(x = x, y = y, z = z, fill = NULL), 
-               breaks = seq(from = -50, to = -5000, by = -250),
-               color = "darkgrey", 
-               linewidth = 0.3, 
-               alpha = 0.4) +
-  coord_sf(xlim = terra::ext(rf_pred_pa)[1:2], 
-           ylim = terra::ext(rf_pred_pa)[3:4], expand = FALSE) +
-  # geom_vline(xintercept = seq(from = terra::ext(rf_pred_pa)[1], 
-  #                             to = terra::ext(rf_pred_pa)[2], 
-  #                             by = terra::res(rf_pred_pa)[1]),
-  #            color = "black", linewidth = 0.1, alpha = 0.1) +
-  # geom_hline(yintercept = seq(from = terra::ext(rf_pred_pa)[3], 
-  #                             to = terra::ext(rf_pred_pa)[4], 
-  #                             by = terra::res(rf_pred_pa)[2]),
-  #            color = "black", linewidth = 0.1, alpha = 0.1) +
-  labs(title = paste("Predicted Presence/Absence for", vme_group),
-       fill = "Prediction", x = "Longitude", y = "Latitude")
-
+# ggplot() +
+#   theme_classic() +
+#   # geom_sf(data = sa, aes(colour = "NAFO Study Area"), fill = "lightblue", alpha = 0.8, show.legend = "line") +
+#   tidyterra::geom_spatraster(data = rf_pred_pa, na.rm = TRUE) +
+#   scale_fill_manual(values = c("0" = "#ffebcd", "1" = "#b87333"),
+#                     na.value = "transparent",
+#                     na.translate = FALSE,  # remove NAs from legend
+#                     labels = c("0" = "Absence", "1" = "Presence")) +
+#   geom_sf(data = footprint, aes(colour = "NAFO Fishing Footprint"), show.legend = "line") +  
+#   # geom_sf(data = eez, aes(colour = "Canadian EEZ"), inherit.aes = FALSE, linewidth = 1, show.legend = "line") +
+#   # Adjust colours
+#   scale_colour_manual(name = "Boundary", 
+#                       values = c("NAFO Study Area" = "black", "NAFO Fishing Footprint" = "blue", "Canadian EEZ" = "red")) +
+#   geom_contour(data = bathy_noaa, 
+#                aes(x = x, y = y, z = z, fill = NULL), 
+#                breaks = seq(from = -50, to = -5000, by = -250),
+#                color = "darkgrey", 
+#                linewidth = 0.3, 
+#                alpha = 0.4) +
+#   coord_sf(xlim = terra::ext(rf_pred_pa)[1:2], 
+#            ylim = terra::ext(rf_pred_pa)[3:4], expand = FALSE) +
+#   # geom_vline(xintercept = seq(from = terra::ext(rf_pred_pa)[1], 
+#   #                             to = terra::ext(rf_pred_pa)[2], 
+#   #                             by = terra::res(rf_pred_pa)[1]),
+#   #            color = "black", linewidth = 0.1, alpha = 0.1) +
+#   # geom_hline(yintercept = seq(from = terra::ext(rf_pred_pa)[3], 
+#   #                             to = terra::ext(rf_pred_pa)[4], 
+#   #                             by = terra::res(rf_pred_pa)[2]),
+#   #            color = "black", linewidth = 0.1, alpha = 0.1) +
+#   labs(title = paste("Predicted Presence/Absence for", vme_group),
+#        fill = "Prediction", x = "Longitude", y = "Latitude")
 
 
 # Load previous tiff files to compare ----
@@ -70,7 +68,7 @@ sdm2024_pred_stack <- c(
     terra::project(terra::crs(rf_pred_stack)),
   CombConf = terra::rast("output/SDM2024_orig/Black Coral/BlackCorals_raster_output_sens_spe/BlackCorals_raster_output_combconf.tif") %>%
     terra::project(terra::crs(rf_pred_stack)),
-  NumPres = terra::rast("output/SDM2024_orig/Black Coral/BlackCorals_raster_output_sens_spe/BlackCoralsVME_raster_output_cvsum.tif") %>%
+  CVSum = terra::rast("output/SDM2024_orig/Black Coral/BlackCorals_raster_output_sens_spe/BlackCoralsVME_raster_output_cvsum.tif") %>%
     terra::project(terra::crs(rf_pred_stack))
   )
 
@@ -97,7 +95,7 @@ plot_sdm2024_MaxClass <- ggplot() +
         axis.title = element_blank()) +
   scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
   scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
-  labs(title = "SDM2024\nBlackCorals\nMaxClass")
+  labs(title = paste0("SDM2024\n",vmeoi,"\nMaxClass"))
 
 plot_new_MaxClass <- ggplot() +
   theme_classic() +
@@ -117,7 +115,7 @@ plot_new_MaxClass <- ggplot() +
         axis.title = element_blank()) +
   scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
   scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
-  labs(title = "New | Period 1 | SSP 2-4.5 | SelVars\nBlackCorals\nMaxClass")
+  labs(title = paste("New | Period",poi,"| SSP",sspoi,"\n",subsample_absences,"|",keep_all_cmip_vars,"\n",vmeoi,"\nMaxClass"))
 
 cowplot::plot_grid(plot_sdm2024_MaxClass, plot_new_MaxClass, 
                    # labels = c("SDM2024 MaxClass", "New MaxClass"), 
@@ -147,7 +145,7 @@ plot_sdm2024_MaxClassF <- ggplot() +
         axis.title = element_blank()) +
   scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
   scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
-  labs(title = "SDM2024\nBlackCorals\nMaxClassF")
+  labs(title = paste0("SDM2024\n",vmeoi,"\nMaxClassF"))
 
 plot_new_MaxClassF <- ggplot() +
   theme_classic() +
@@ -169,7 +167,7 @@ plot_new_MaxClassF <- ggplot() +
         axis.title = element_blank()) +
   scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
   scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
-  labs(title = "New | Period 1 | SSP 2-4.5 | SelVars\nBlackCorals\nMaxClassF")
+  labs(title = paste("New | Period",poi,"| SSP",sspoi,"\n",subsample_absences,"|",keep_all_cmip_vars,"\n",vmeoi,"\nMaxClassF"))
 
 cowplot::plot_grid(plot_sdm2024_MaxClassF, plot_new_MaxClassF, 
                    # labels = c("SDM2024 MaxClassF", "New MaxClassF"), 
@@ -179,28 +177,22 @@ ggsave("output/01_BlackCorals_RasterMetrics_OldVSNew/MaxClassF_comparison.png",
        width = 10, height = 5, dpi = 300)
 
 # Average probability of classes ----
-# plot_sdm2024_AvgProb <- ggplot() +
+
+# plot_new_AvgProb_Abs <- ggplot() +
 #   theme_classic() +
-#   tidyterra::geom_spatraster(data = sdm2024_pred_stack$AvgProb, na.rm = TRUE) +
+#   tidyterra::geom_spatraster(data = rf_pred_comp$AvgProb[[1]], na.rm = TRUE) +
 #   scale_fill_continuous(palette = c("white","blue")) +
 #   theme(legend.position = "bottom",
 #         legend.title = element_blank())
-# 
-plot_new_AvgProb_Abs <- ggplot() +
-  theme_classic() +
-  tidyterra::geom_spatraster(data = rf_pred_comp$AvgProb[[1]], na.rm = TRUE) +
-  scale_fill_continuous(palette = c("white","blue")) +
-  theme(legend.position = "bottom",
-        legend.title = element_blank())
-plot_new_AvgProb_Pres <- ggplot() +
-  theme_classic() +
-  tidyterra::geom_spatraster(data = rf_pred_comp$AvgProb[[2]], na.rm = TRUE) +
-  scale_fill_continuous(palette = c("white","blue")) +
-  theme(legend.position = "bottom",
-        legend.title = element_blank())
-cowplot::plot_grid(plot_new_AvgProb_Abs, plot_new_AvgProb_Pres, 
-                   labels = c("New AvgProb Absence", "New AvgProb Presence"), 
-                   ncol = 2)
+# plot_new_AvgProb_Pres <- ggplot() +
+#   theme_classic() +
+#   tidyterra::geom_spatraster(data = rf_pred_comp$AvgProb[[2]], na.rm = TRUE) +
+#   scale_fill_continuous(palette = c("white","blue")) +
+#   theme(legend.position = "bottom",
+#         legend.title = element_blank())
+# cowplot::plot_grid(plot_new_AvgProb_Abs, plot_new_AvgProb_Pres, 
+#                    labels = c("New AvgProb Absence", "New AvgProb Presence"), 
+#                    ncol = 2)
 # 
 # cowplot::plot_grid(plot_sdm2024_AvgProb, plot_new_AvgProb, 
 #                    labels = c("SDM2024 AvgProb", "New AvgProb"), 
@@ -222,7 +214,7 @@ plot_sdm2024_MaxClassAvgProb <- ggplot() +
         axis.title = element_blank()) +
   scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
   scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
-  labs(title = "SDM2024\nBlackCorals\nMaxClassAvgProb")
+  labs(title = paste0("SDM2024\n",vmeoi,"\nMaxClassAvgProb"))
 
 plot_new_MaxClassAvgProb <- ggplot() +
   theme_classic() +
@@ -239,7 +231,7 @@ plot_new_MaxClassAvgProb <- ggplot() +
         axis.title = element_blank()) +
   scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
   scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
-  labs(title = "New | Period 1 | SSP 2-4.5 | SelVars\nBlackCorals\nMaxClassAvgProb")
+  labs(title = paste("New | Period",poi,"| SSP",sspoi,"\n",subsample_absences,"|",keep_all_cmip_vars,"\n",vmeoi,"\nMaxClassAvgProb"))
   
 cowplot::plot_grid(plot_sdm2024_MaxClassAvgProb, plot_new_MaxClassAvgProb, 
                    # labels = c("SDM2024 MaxClassAvgProb", "New MaxClassAvgProb"), 
@@ -264,7 +256,7 @@ plot_sdm2024_CombConf <- ggplot() +
         axis.title = element_blank()) +
   scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
   scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
-  labs(title = "SDM2024\nBlackCorals\nCombConf")
+  labs(title = paste0("SDM2024\n",vmeoi,"\nCombConf"))
 
 plot_new_CombConf <- ggplot() +
   theme_classic() +
@@ -281,7 +273,7 @@ plot_new_CombConf <- ggplot() +
         axis.title = element_blank()) +
   scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
   scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
-  labs(title = "New | Period 1 | SSP 2-4.5 | SelVars\nBlackCorals\nCombConf")
+  labs(title = paste("New | Period",poi,"| SSP",sspoi,"\n",subsample_absences,"|",keep_all_cmip_vars,"\n",vmeoi,"\nCombConf"))
 
 cowplot::plot_grid(plot_sdm2024_CombConf, plot_new_CombConf, 
                    # labels = c("SDM2024 CombConf", "New CombConf"), 
@@ -293,9 +285,9 @@ ggsave("output/01_BlackCorals_RasterMetrics_OldVSNew/CombConf_comparison.png",
 # Number of models predicting presence ----
 # my_palette <- c("darkblue", paletteer::paletteer_d("colorBlindness::Blue2Orange10Steps", 10))
 
-plot_sdm2024_NumPres <- ggplot() +
+plot_sdm2024_CVSum <- ggplot() +
   theme_classic() +
-  tidyterra::geom_spatraster(data = sdm2024_pred_stack$NumPres, na.rm = TRUE) +
+  tidyterra::geom_spatraster(data = sdm2024_pred_stack$CVSum, na.rm = TRUE) +
   scale_fill_continuous(palette = "YlGnBu", na.value = "transparent",
                         breaks = 0:10) +
   geom_contour(data = bathy_noaa, 
@@ -309,11 +301,11 @@ plot_sdm2024_NumPres <- ggplot() +
         axis.title = element_blank()) +
   scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
   scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
-  labs(title = "SDM2024\nBlackCorals\nNumPres")
+  labs(title = paste0("SDM2024\n",vmeoi,"\nCVSum"))
 
-plot_new_NumPres <- ggplot() +
+plot_new_CVSum <- ggplot() +
   theme_classic() +
-  tidyterra::geom_spatraster(data = rf_pred_comp$NumPres, na.rm = TRUE) +
+  tidyterra::geom_spatraster(data = rf_pred_comp$CVSum, na.rm = TRUE) +
   scale_fill_continuous(palette = "YlGnBu", na.value = "transparent",
                         breaks = 0:10) +
   geom_contour(data = bathy_noaa, 
@@ -327,14 +319,16 @@ plot_new_NumPres <- ggplot() +
         axis.title = element_blank()) +
   scale_x_continuous(limits = plot_xlim, expand = c(0,0)) +
   scale_y_continuous(limits = plot_ylim, expand = c(0,0)) +
-  labs(title = "New | Period 1 | SSP 2-4.5 | SelVars\nBlackCorals\nNumPres")
+  labs(title = paste("New | Period",poi,"| SSP",sspoi,"\n",subsample_absences,"|",keep_all_cmip_vars,"\n",vmeoi,"\nCVSum"))
 
-cowplot::plot_grid(plot_sdm2024_NumPres, plot_new_NumPres, 
-                   # labels = c("SDM2024 NumPres", "New NumPres"), 
+cowplot::plot_grid(plot_sdm2024_CVSum, plot_new_CVSum, 
+                   # labels = c("SDM2024 CVSum", "New CVSum"), 
                    align = "hv",
                    ncol = 2)
-ggsave("output/01_BlackCorals_RasterMetrics_OldVSNew/NumPres_comparison.png", 
+ggsave(paste0("output/03_RF_Map_Outputs/",vmeoi,"_CVSum_comparison.png"), 
        width = 10, height = 5, dpi = 300)
+# ggsave("output/01_BlackCorals_RasterMetrics_OldVSNew/CVSum_comparison.png", 
+#        width = 10, height = 5, dpi = 300)
 
 
 

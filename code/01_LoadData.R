@@ -79,5 +79,75 @@ cmip_df <- readRDS("data/processed/ens_df.rds") %>%
 terrain_topvars <- read_csv("data/processed/VarImp_2024_2025_SCR_02_TopStaticVarsByVME.csv", show_col_types = FALSE)
 
 
+# Average predictors for each period and SSP ----
+cmip_df_period_ssp <- cmip_df %>%
+  filter(!is.na(period)) %>%
+  group_by(lon, lat, period, ssp) %>%
+  # summarise(across(sobavg:mldavg, \(x) mean(x, na.rm = TRUE)), .groups = "drop")  
+  summarise(across(sobavg:mldavg, list(mean = ~mean(.x, na.rm = TRUE),
+                                       min = ~min(.x, na.rm = TRUE),
+                                       max = ~max(.x, na.rm = TRUE), 
+                                       range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)),
+                   .names = "{col}_{fn}")) %>%
+  ungroup() %>%
+  # Only keep max mldavg
+  select(-(starts_with("mldavg") & !ends_with("_max"))) %>%
+  # mldavg_max (annual) and mldavg_W_max are identical so remove annual var
+  select(-mldavg_max)
+
+
+# Get study area extent and create spatial mask ----
+sa <- terra::rast("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint/NRA_BNAM_b_cur_avg_max.tif") %>%
+  terra::as.polygons(.) %>%
+  sf::st_as_sf(.) %>%
+  sf::st_transform(4326) %>%
+  mutate(NRA_BNAM_b_tmp_mean = 1) %>%
+  group_by(NRA_BNAM_b_tmp_mean) %>%
+  summarise(geometry = sf::st_union(geometry))
+
+sa_lims <- sf::st_coordinates(sa) %>% as.data.frame %>%
+  select(X,Y)
+sa_lims <- c(min(sa_lims$X), max(sa_lims$X),min(sa_lims$Y),max(sa_lims$Y))
+
+# Transform CMIP data to raster ----
+transform_cmip_to_raster <- function(data, varstat, poi, sspoi) {
+  
+  # Data must be ensembled dataframe with period and ssp columns
+  
+  # Select a layer of data to raster
+  df <- data %>%
+    filter(ssp == sspoi, period == poi) %>%
+    select(lon, lat, !!sym(varstat)) %>%
+    sf::st_as_sf(coords = c("lon","lat"), crs = 4326)
+  
+  # Transform into terra vector of points
+  pts <- terra::vect(df)
+  
+  # Determine resolution of data in degrees
+  # res <- round(ens_df_period_cell$lon[2]-ens_df_period_cell$lon[1], 5)
+  res <- round(sort(unique(data$lon))[2] - sort(unique(data$lon))[1], 5)
+  
+  # Create template raster
+  rast_template <- terra::rast(
+    xmin = sa_lims[1], xmax = sa_lims[2], ymin = sa_lims[3], ymax = sa_lims[4],
+    resolution = res,
+    crs = "EPSG:4326"
+  )
+  # rast_template <- bathy_layers[[1]]
+  
+  # Rasterise points to grid
+  rast_result <- terra::rasterize(pts, rast_template, field = varstat)
+  
+  # Resample to match BNAM raster
+  rast_resamp <- terra::resample(rast_result, bnam_layers[[1]], method = "bilinear")
+  return(rast_resamp)
+  
+}
+
+# data = cmip_df_period_ssp
+# varstat=cmip_vars[9]
+
+cmip_vars <- colnames(select(cmip_df_period_ssp, contains("_")))
+
 
 
