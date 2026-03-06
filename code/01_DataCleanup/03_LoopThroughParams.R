@@ -4,31 +4,19 @@
 # Load data ----
 source("code/01_LoadData.R")
 
-# Groups of interest ----
-# vmeoi <- "black_corals"
-# poi <- "P1"
-# sspoi <- "2-4.5"
-
-# Other parameters of interest ----
-# subsample_absences <- TRUE
-testing_subsampling <- TRUE
-# keep_all_cmip_vars <- FALSE
 
 # Create table of each combination of iterations to save variable selection results ----
 vme_all <- unique(resp_df$VME_Group)
 period_all <- c("P1", "P2", "P3", "P4")
 ssp_all <- unique(cmip_df_period_ssp$ssp)
-subsamp_opts <- c(TRUE, FALSE)
-keep_all_cmip_vars_opts <- c(TRUE, FALSE)
 
 var_select_df <- expand_grid(vmeoi = vme_all,
                        poi = period_all,
-                       sspoi = ssp_all,
-                       subsamp = subsamp_opts) %>%
+                       sspoi = ssp_all) %>%
   arrange(vmeoi, poi, sspoi) %>%
   # Add columns for CMIP variables
   cbind(matrix(NA, nrow = nrow(.), ncol = length(cmip_vars))) %>%
-  set_names(c("vmeoi", "poi", "sspoi", "subsamp", cmip_vars))
+  set_names(c("vmeoi", "poi", "sspoi", cmip_vars))
 
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration
@@ -47,26 +35,16 @@ raster_output_list <- list()
 
 # Loop through each combination of VME group, period, SSP, and subsampling option ----
 loop_seed <- 411
-for (vmeoi in vme_all) {
+for (vmeoi in "black_corals") {  # vme_all
   for (poi in period_all) {
     for (sspoi in ssp_all) {
-      for (subsample_absences in subsamp_opts) {
-        for (keep_all_cmip_vars in keep_all_cmip_vars_opts) {
-          # Call modelling code for this combination of parameters
-          cat("Running modelling for VME group:", vmeoi, 
-              "Period:", poi, 
-              "SSP:", sspoi, 
-              "Subsampled:", subsample_absences, 
-              "Select vars:", !keep_all_cmip_vars, "\n")
-          subsamp_title <- ifelse(subsample_absences, "SubsampAbs", "AllAbs")
-          selvars_title <- ifelse(keep_all_cmip_vars, "AllCMIPVars", "SelCMIPVars")
-          loop_seed <- loop_seed + 1
-          if (subsample_absences & keep_all_cmip_vars) {
-            next # Skip this combination since it doesn't make sense to subsample absences if we're keeping all CMIP variables (since absence subsampling only affects priority of variable selection in prelim RF, which is irrelevant if we're keeping all variables)
-          }
-          source("code/03_Modelling.R")
-        }
-      }
+      # Call modelling code for this combination of parameters
+      cat("Running modelling for VME group:", vmeoi, 
+          "Period:", poi, 
+          "SSP:", sspoi,
+          "\n")
+      loop_seed <- loop_seed + 1
+      source("code/03_Modelling.R")
     }
   }
 }
