@@ -7,10 +7,10 @@ allpred <- rasterToPoints(predictors)
 p.data.all = data.frame(allpred)
 aftt_crs <- sp::CRS("+proj=utm +zone=23 +datum=NAD83 +units=m +no_defs")
 
-extrapolation.area <- compute_extrapolation(samples = mdata,
-                                            covariate.names = predsel,
-                                            prediction.grid = p.data.all,
-                                            coordinate.system = aftt_crs)
+extrapolation.area <- dsmextra::compute_extrapolation(samples = mdata,
+  covariate.names = predsel,
+  prediction.grid = p.data.all,
+  coordinate.system = aftt_crs)
 
 plot(extrapolation.area$rasters$ExDet$analogue) # analogue areas
 plot(extrapolation.area$rasters$ExDet$univariate) # univariate extrapolation

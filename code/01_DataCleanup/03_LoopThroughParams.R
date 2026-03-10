@@ -4,7 +4,6 @@
 # Load data ----
 source("code/01_LoadData.R")
 
-
 # Create table of each combination of iterations to save variable selection results ----
 vme_all <- unique(resp_df$VME_Group)
 period_all <- c("P1", "P2", "P3", "P4")
@@ -18,20 +17,13 @@ var_select_df <- expand_grid(vmeoi = vme_all,
   cbind(matrix(NA, nrow = nrow(.), ncol = length(cmip_vars))) %>%
   set_names(c("vmeoi", "poi", "sspoi", cmip_vars))
 
-
 # Initialise fold metrics dataframe to save results from each fold of each iteration
 fold_metrics_summary_df <- data.frame(VME_Group = character(),
                                      Period = character(),
                                      SSP = character(),
-                                     Subsampled = logical(),
-                                     SelVars = logical(),
                                      metric = character(),
                                      mean_value = numeric(),
                                      sd_value = numeric())
-
-# Save raster prediction outputs for each iteration in a list
-raster_output_list <- list()
-
 
 # Loop through each combination of VME group, period, SSP, and subsampling option ----
 loop_seed <- 411
@@ -47,6 +39,10 @@ for (vmeoi in "black_corals") {  # vme_all
       source("code/03_Modelling.R")
     }
   }
+  # Summary outputs by VME group
+  write_csv(fold_metrics_summary_df, file.path("output/02_Modelling_Outputs", vmeoi, paste0(vmeoi, "_fold_metrics_summary.csv")))
+  # Maps per VME group
+  # source("code/04_Mapping.R")
 }
 
 
@@ -92,7 +88,5 @@ sdm2024_raster_output_df <- data.frame(VME_group = vme_all,
                                                    "Sea Pens/SeapensVME_raster_output_cvsum.tif",
                                                    "Small Gorgonians/SG_Model_Outputs/SG_FG_SensSpec/sg_fg_SensSpecSENSSPECVME_raster_output_cvsum.tif",
                                                    "Sponges/SpongesFG_v2/SpongesFG_v2VME_raster_output_cvsum.tif",
-                                                   "Sponges/SpongesVME_raster_output_cvsum.tif"))
-
-
-
+                                                   "Sponges/SpongesVME_raster_output_cvsum.tif")) %>%
+  mutate(across(MaxClass:CVSum, ~ file.path("output/SDM2024_orig", .x)))

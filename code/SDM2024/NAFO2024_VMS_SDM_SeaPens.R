@@ -17,24 +17,6 @@ library(patchwork)
 library(caret)
 # library(dsmextra)            # no longer available on CRAN
 
-# shelf(
-#   here,
-#   raster,
-#   # maptools,                     # no longer available
-#   randomForest,
-#   ranger,
-#   tidyverse,
-#   vtable,
-#   pdp,
-#   sf,
-#   data.table,
-#   ggcorrplot,
-#   patchwork,
-#   caret,
-#   PresenceAbsence,
-#   matrixStats,
-#   densitymodelling/dsmextra       # no longer available on CRAN
-# )
 
 ## Colour palette
 cpl <- c('#d4ebe7','#cbbcbb','#f5f1f1','#172957','#66afad')

@@ -5,10 +5,9 @@
 # Then compare it to the BNAM results
 
 # Load data ----
-
 cat("Loading data...\n")
 # vmeoi <- "black_corals"
-# poi <- "P4"
+# poi <- "P1"
 # sspoi <- "1-2.6"
 
 ## Transform relevant CMIP variable data to raster layers
@@ -69,18 +68,18 @@ rf_prelim_imp <- as.data.frame(randomForest::importance(rf_prelim)) %>%
   arrange(desc(MeanDecreaseGini))
 
 # Show var imp plot for each VME group, order each by descending importance
-plot_rf_prelim_var_imp <- ggplot(rf_prelim_imp, aes(x = reorder(Variable, MeanDecreaseGini), 
-                          y = MeanDecreaseGini)) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  theme_bw() +
-  labs(x = "Predictor Variable", y = "Mean Decrease in Gini Index") +
-  theme(legend.position = "none")
+# plot_rf_prelim_var_imp <- ggplot(rf_prelim_imp, aes(x = reorder(Variable, MeanDecreaseGini), 
+#                           y = MeanDecreaseGini)) +
+#   geom_bar(stat = "identity") +
+#   coord_flip() +
+#   theme_bw() +
+#   labs(x = "Predictor Variable", y = "Mean Decrease in Gini Index") +
+#   theme(legend.position = "none")
 
-ggsave(plot_rf_prelim_var_imp, 
-  filename = paste0("output/02_Modelling_Outputs/",
-    vmeoi, "_", poi, "_", sspoi, "_plot_rf_prelim_var_imp.png"), 
-  width = 6, height = 4)
+# ggsave(plot_rf_prelim_var_imp, 
+#   filename = paste0("output/02_Modelling_Outputs/",
+#     vmeoi, "_", poi, "_", sspoi, "_plot_rf_prelim_var_imp.png"), 
+#   width = 6, height = 4)
 
 ## Plot partial dependence plots ----
 
@@ -102,25 +101,25 @@ cor_df <- cor(vme_df[, vme_vars, drop = FALSE],
   pivot_longer(everything(), names_to = "var2", values_to = "cor") %>%
   mutate(var1 = rep(vme_vars, each = length(vme_vars))) %>%
   select(var1, var2, cor)
-write.csv(cor_df, file = paste0("output/02_Modelling_Outputs/",
-  paste(vmeoi, poi, sspoi, "table_cor_AllCMIPVars", sep = "_"), ".csv"), row.names = FALSE)
+# write.csv(cor_df, file = paste0("output/02_Modelling_Outputs/",
+#   paste(vmeoi, poi, sspoi, "table_cor_AllCMIPVars", sep = "_"), ".csv"), row.names = FALSE)
 
-plot_cor_allvars <- ggplot(data = cor_df, aes(x = var1, y = var2, fill = cor)) +
-  geom_tile(colour = "black") +
-  geom_text(aes(label = ifelse(cor > 0.7 | cor < -0.7, "*", "")), size = 3) +
-  scale_fill_gradient2(low = "blue", mid = "white", high = "red", limit = c(-1,1), midpoint = 0) +
-  scale_x_discrete(expand = c(0,0)) +
-  scale_y_discrete(expand = c(0,0)) +
-  theme_classic() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.line = element_blank(),
-        axis.title = element_blank()) +
-  labs(title = paste("Correlation Matrix for VME Group:", vmeoi), fill = "Correlation")
+# plot_cor_allvars <- ggplot(data = cor_df, aes(x = var1, y = var2, fill = cor)) +
+#   geom_tile(colour = "black") +
+#   geom_text(aes(label = ifelse(cor > 0.7 | cor < -0.7, "*", "")), size = 3) +
+#   scale_fill_gradient2(low = "blue", mid = "white", high = "red", limit = c(-1,1), midpoint = 0) +
+#   scale_x_discrete(expand = c(0,0)) +
+#   scale_y_discrete(expand = c(0,0)) +
+#   theme_classic() +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1),
+#         axis.line = element_blank(),
+#         axis.title = element_blank()) +
+#   labs(title = paste("Correlation Matrix for VME Group:", vmeoi), fill = "Correlation")
 
-ggsave(plot_cor_allvars,
-  filename = paste0("output/02_Modelling_Outputs/",
-    vmeoi, "_", poi, "_", sspoi, "_plot_cor_AllCMIPVars.png"), 
-  width = 8, height = 6)
+# ggsave(plot_cor_allvars,
+#   filename = paste0("output/02_Modelling_Outputs/",
+#     vmeoi, "_", poi, "_", sspoi, "_plot_cor_AllCMIPVars.png"), 
+#   width = 8, height = 6)
 
 
 ### Remove correlated variables based on importance ranking and VIF values ----
@@ -358,14 +357,14 @@ for (i in 1:10) {
     arrange(desc(MeanDecreaseGini))
 
   # Fold partial dependence data
-  cat("  Extracting partial dependence data\n")
-  fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
-    pdp::partial(rf_fold_model, 
-      pred.var = var,
-      plot = FALSE) %>%
-      mutate(Variable = colnames(.)[1]) %>%
-      rename(value = var)
-  })
+  # cat("  Extracting partial dependence data\n")
+  # fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
+  #   pdp::partial(rf_fold_model, 
+  #     pred.var = var,
+  #     plot = FALSE) %>%
+  #     mutate(Variable = colnames(.)[1]) %>%
+  #     rename(value = var)
+  # })
   
   cat("  Generating spatial predictions\n")
   # Spatial predictions for this fold
@@ -407,78 +406,88 @@ fold_metrics_summary_df_i <- fold_metrics_df_i %>%
 fold_metrics_summary_df <- bind_rows(fold_metrics_summary_df, fold_metrics_summary_df_i)
 
 # Create spatial predictions stack
-rf_pred_stack <- terra::rast(fold_predictions_spatial_reclass)
-raster_output_list[[paste(vmeoi, poi, sspoi, sep = "_")]] <- rf_pred_stack
+rf_pred_foldstack <- terra::rast(fold_predictions_spatial_reclass)
+terra::writeRaster(rf_pred_foldstack, filename = paste0("output/02_Modelling_Outputs/", vmeoi, "/",
+  paste(vmeoi, poi, sspoi, "rf_spatial_predictions", sep = "_"), ".tif"), overwrite = TRUE)
 
 
 # Extract variable importance for final selected variables ----
 cat("Extracting RF model variable importance metrics...\n")
 
-fold_var_imp_df <- lapply(fold_var_imp, function(fold) {
-  fold %>%
-    filter(Variable %in% selected_vme_vars) %>%
-    mutate(var_imp_rank = row_number())
-}) %>%
-  bind_rows(.id = "Fold") %>%
-  mutate(Variable = fct_reorder(Variable, MeanDecreaseGini, .fun = mean)) %>%
-  ungroup()
-write.csv(fold_var_imp_df, file = paste0("output/02_Modelling_Outputs/",
-  paste(vmeoi, poi, sspoi, "table_rf_VarImp", sep = "_"), ".csv"), row.names = FALSE)
+# fold_var_imp_df <- lapply(fold_var_imp, function(fold) {
+#   fold %>%
+#     filter(Variable %in% selected_vme_vars) %>%
+#     mutate(var_imp_rank = row_number())
+# }) %>%
+#   bind_rows(.id = "Fold") %>%
+#   mutate(Variable = fct_reorder(Variable, MeanDecreaseGini, .fun = mean)) %>%
+#   ungroup()
+# write.csv(fold_var_imp_df, file = paste0("output/02_Modelling_Outputs/",
+#   paste(vmeoi, poi, sspoi, "table_rf_VarImp", sep = "_"), ".csv"), row.names = FALSE)
 
-ggplot(fold_var_imp_df, aes(y = Variable, x = MeanDecreaseGini)) +
-  geom_boxplot() +
-  theme_bw() +
-  labs(y = "Predictor Variable", x = "Mean Decrease in Gini Index") +
-  ggtitle(paste("Variable importance across folds for VME group:", vmeoi))
+# ggplot(fold_var_imp_df, aes(y = Variable, x = MeanDecreaseGini)) +
+#   geom_boxplot() +
+#   theme_bw() +
+#   labs(y = "Predictor Variable", x = "Mean Decrease in Gini Index") +
+#   ggtitle(paste("Variable importance across folds for VME group:", vmeoi))
 
-ggsave(filename = paste0("output/02_Modelling_Outputs/",
-  paste(vmeoi, poi, sspoi, "plot_rf_VarImp", sep = "_"), ".png"), 
-  width = 6, height = 4)
+# ggsave(filename = paste0("output/02_Modelling_Outputs/",
+#   paste(vmeoi, poi, sspoi, "plot_rf_VarImp", sep = "_"), ".png"), 
+#   width = 6, height = 4)
 
 
 # Extract partial dependence plots for each variable ----
-fold_partial_df <- lapply(fold_partialdep, function(fold) {
-  bind_rows(fold)
-}) %>%
-  bind_rows(.id = "Fold") %>%
-  arrange(Fold, Variable, value) %>%
-  mutate(Fold = as.factor(as.numeric(Fold)),
-         Variable = factor(Variable, levels = rev(levels(fold_var_imp_df$Variable))))
-write.csv(fold_partial_df, file = paste0("output/02_Modelling_Outputs/",
-  paste(vmeoi, poi, sspoi, "table_rf_PartialDep", sep = "_"), ".csv"), row.names = FALSE)
+# fold_partial_df <- lapply(fold_partialdep, function(fold) {
+#   bind_rows(fold)
+# }) %>%
+#   bind_rows(.id = "Fold") %>%
+#   arrange(Fold, Variable, value) %>%
+#   mutate(Fold = as.factor(as.numeric(Fold)),
+#          Variable = factor(Variable, levels = rev(levels(fold_var_imp_df$Variable))))
+# write.csv(fold_partial_df, file = paste0("output/02_Modelling_Outputs/",
+#   paste(vmeoi, poi, sspoi, "table_rf_PartialDep", sep = "_"), ".csv"), row.names = FALSE)
 
-ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
-  geom_line() +
-  facet_wrap(~ Variable, scales = "free_x") +
-  theme_bw() +
-  labs(x = "Predictor Value", y = "Partial Dependence") +
-  ggtitle(paste("Partial dependence plots across folds for VME group:", vmeoi))
+# ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
+#   geom_line() +
+#   facet_wrap(~ Variable, scales = "free_x") +
+#   theme_bw() +
+#   labs(x = "Predictor Value", y = "Partial Dependence") +
+#   ggtitle(paste("Partial dependence plots across folds for VME group:", vmeoi))
 
-ggsave(filename = paste0("output/02_Modelling_Outputs/",
-   paste(vmeoi, poi, sspoi, "plot_rf_PartialDep", sep = "_"), ".png"),
-  width = 10, height = 8)
+# ggsave(filename = paste0("output/02_Modelling_Outputs/",
+#    paste(vmeoi, poi, sspoi, "plot_rf_PartialDep", sep = "_"), ".png"),
+#   width = 10, height = 8)
 
 
-# # Calculate spatial metrics across folds ----
-# ## Most frequent class (0/1)
-# rf_res_MaxClass <- terra::modal(rf_pred_stack, freq = FALSE)
+# Calculate spatial metrics across folds ----
+## Most frequent class (0/1)
+rf_res_MaxClass <- terra::modal(rf_pred_foldstack, freq = FALSE)
 
-# ## Frequency of most frequent class (fraction of runs)
-# # rf_res_MaxClassF <- terra::modal(rf_pred_stack, freq = TRUE) / 10  # old method - doesn't work
-# rf_res_freq_count <- sum(rf_pred_stack == rf_res_MaxClass, na.rm = TRUE)
-# rf_res_MaxClassF <- rf_res_freq_count / 10
+## Frequency of most frequent class (fraction of runs)
+# rf_res_MaxClassF <- terra::modal(rf_pred_foldstack, freq = TRUE) / 10  # old method - doesn't work
+rf_res_freq_count <- sum(rf_pred_foldstack == rf_res_MaxClass, na.rm = TRUE)
+rf_res_MaxClassF <- rf_res_freq_count / 10
 
-# ## Average probability of classes
-# rf_res_AvgProb <- Reduce("+", fold_predictions_spatial) / 10
+## Average probability of classes
+rf_res_AvgProb <- Reduce("+", fold_predictions_spatial) / 10
 
-# ## Average probability of maximum frequency class
-# rf_res_MaxClassAvgProb <- terra::selectRange(rf_res_AvgProb, rf_res_MaxClass + 1)
+## Average probability of maximum frequency class
+rf_res_MaxClassAvgProb <- terra::selectRange(rf_res_AvgProb, rf_res_MaxClass + 1)
 
-# ## Combined confidence metric
-# rf_res_CombConf <- rf_res_MaxClassF * rf_res_MaxClassAvgProb
+## Combined confidence metric
+rf_res_CombConf <- rf_res_MaxClassF * rf_res_MaxClassAvgProb
 
-# ## Number of models predicting presence
-# rf_res_CVSum <- terra::app(rf_pred_stack, sum, na.rm = TRUE)
+## Number of models predicting presence
+rf_res_CVSum <- terra::app(rf_pred_foldstack, sum, na.rm = TRUE)
+
+
+# Save rasters for each metric ----
+rm(rf_res_freq_count, rf_res_AvgProb)
+lapply(ls(pattern = "rf_res"), function(res_name) {
+  res_raster <- get(res_name)
+  terra::writeRaster(res_raster, filename = paste0("output/02_Modelling_Outputs/", vmeoi, "/",
+    paste(vmeoi, poi, sspoi, res_name, sep = "_"), ".tif"), overwrite = TRUE)
+})
 
 # ## Create stack of computed raster metrics across folds
 # rf_pred_comp <- c(
