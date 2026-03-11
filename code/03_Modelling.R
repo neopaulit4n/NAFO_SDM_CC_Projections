@@ -231,6 +231,12 @@ select_vme_vars <- function(pred_var_df, vmeoi, cor_threshold = 0.7, verbose = F
 vme_var_selection <- select_vme_vars(vme_df[,-1], vmeoi = vmeoi, cor_threshold = 0.7, verbose = FALSE)
 selected_vme_vars <- vme_var_selection$selected_vars
 
+#### Update VIF table with this iteration's results
+vif_df_i <- data.frame(vmeoi = vmeoi, poi = poi, sspoi = sspoi, 
+  variable = rownames(vme_var_selection$vif_values), vif = vme_var_selection$vif_values$vif)
+vif_df <- rbind(vif_df, vif_df_i)
+
+
 # Create final dataframe with selected variables ----
 vme_df <- vme_df %>%
   select(all_of(c("VME_P_A", selected_vme_vars)))
@@ -266,9 +272,9 @@ vme_df <- vme_df %>%
 # Create table of variable selection results for this iteration ----
 selected_cmip_vars <- selected_vme_vars[selected_vme_vars %in% names(cmip_layers)]
 var_select_df[var_select_df$vmeoi == vmeoi & var_select_df$poi == poi & var_select_df$sspoi == sspoi, 
-        selected_cmip_vars] <- TRUE
+        selected_cmip_vars] <- 1
 var_select_df[var_select_df$vmeoi == vmeoi & var_select_df$poi == poi & var_select_df$sspoi == sspoi, 
-        setdiff(names(cmip_layers), selected_cmip_vars)] <- FALSE
+        setdiff(names(cmip_layers), selected_cmip_vars)] <- 0
 
 
 # Prepare variable layer rasters for spatial predictions ----
@@ -428,8 +434,7 @@ cat("Extracting RF model variable importance metrics...\n")
 # ggplot(fold_var_imp_df, aes(y = Variable, x = MeanDecreaseGini)) +
 #   geom_boxplot() +
 #   theme_bw() +
-#   labs(y = "Predictor Variable", x = "Mean Decrease in Gini Index") +
-#   ggtitle(paste("Variable importance across folds for VME group:", vmeoi))
+#   labs(y = "Predictor Variable", x = "Mean Decrease in Gini Index")
 
 # ggsave(filename = paste0("output/02_Modelling_Outputs/",
 #   paste(vmeoi, poi, sspoi, "plot_rf_VarImp", sep = "_"), ".png"), 
@@ -451,8 +456,7 @@ cat("Extracting RF model variable importance metrics...\n")
 #   geom_line() +
 #   facet_wrap(~ Variable, scales = "free_x") +
 #   theme_bw() +
-#   labs(x = "Predictor Value", y = "Partial Dependence") +
-#   ggtitle(paste("Partial dependence plots across folds for VME group:", vmeoi))
+#   labs(x = "Predictor Value", y = "Partial Dependence")
 
 # ggsave(filename = paste0("output/02_Modelling_Outputs/",
 #    paste(vmeoi, poi, sspoi, "plot_rf_PartialDep", sep = "_"), ".png"),
