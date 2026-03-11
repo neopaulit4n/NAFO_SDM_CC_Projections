@@ -89,11 +89,11 @@ cmip_df_period_ssp <- cmip_df %>%
                                        max = ~max(.x, na.rm = TRUE), 
                                        range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)),
                    .names = "{col}_{fn}")) %>%
-  ungroup() %>%
-  # Only keep max mldavg
-  select(-(starts_with("mldavg") & !ends_with("_max"))) %>%
-  # mldavg_max (annual) and mldavg_W_max are identical so remove annual var
-  select(-mldavg_max)
+  ungroup() #%>%
+  # # Only keep max mldavg
+  # select(-(starts_with("mldavg") & !ends_with("_max"))) %>%
+  # # mldavg_max (annual) and mldavg_W_max are identical so remove annual var
+  # select(-mldavg_max)
 
 
 # Get study area extent and create spatial mask ----
