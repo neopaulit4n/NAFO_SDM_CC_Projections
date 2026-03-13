@@ -6,9 +6,6 @@
 
 # Load data ----
 cat("Loading data...\n")
-# vmeoi <- "black_corals"
-# poi <- "P1"
-# sspoi <- "1-2.6"
 
 ## Transform relevant CMIP variable data to raster layers
 cmip_layers <- lapply(cmip_vars, function(var) {
@@ -68,18 +65,19 @@ rf_prelim_imp <- as.data.frame(randomForest::importance(rf_prelim)) %>%
   arrange(desc(MeanDecreaseGini))
 
 # Show var imp plot for each VME group, order each by descending importance
-# plot_rf_prelim_var_imp <- ggplot(rf_prelim_imp, aes(x = reorder(Variable, MeanDecreaseGini), 
-#                           y = MeanDecreaseGini)) +
-#   geom_bar(stat = "identity") +
-#   coord_flip() +
-#   theme_bw() +
-#   labs(x = "Predictor Variable", y = "Mean Decrease in Gini Index") +
-#   theme(legend.position = "none")
+plot_rf_prelim_var_imp <- ggplot(rf_prelim_imp, aes(x = reorder(Variable, MeanDecreaseGini), 
+                          y = MeanDecreaseGini)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_bw() +
+  labs(x = "Predictor Variable", y = "Mean Decrease in Gini Index") +
+  theme(legend.position = "none",
+        axis.text.y = element_text(size = 6))
 
-# ggsave(plot_rf_prelim_var_imp, 
-#   filename = paste0("output/02_Modelling_Outputs/",
-#     vmeoi, "_", poi, "_", sspoi, "_plot_rf_prelim_var_imp.png"), 
-#   width = 6, height = 4)
+ggsave(plot_rf_prelim_var_imp, 
+  filename = paste0("output/02_Modelling_Outputs/",vmeoi,"/",
+    vmeoi, "_", poi, "_", sspoi, "_plot_rf_prelim_var_imp.jpg"), 
+  width = 6, height = 4)
 
 ## Plot partial dependence plots ----
 
@@ -104,22 +102,23 @@ cor_df <- cor(vme_df[, vme_vars, drop = FALSE],
 # write.csv(cor_df, file = paste0("output/02_Modelling_Outputs/",
 #   paste(vmeoi, poi, sspoi, "table_cor_AllCMIPVars", sep = "_"), ".csv"), row.names = FALSE)
 
-# plot_cor_allvars <- ggplot(data = cor_df, aes(x = var1, y = var2, fill = cor)) +
-#   geom_tile(colour = "black") +
-#   geom_text(aes(label = ifelse(cor > 0.7 | cor < -0.7, "*", "")), size = 3) +
-#   scale_fill_gradient2(low = "blue", mid = "white", high = "red", limit = c(-1,1), midpoint = 0) +
-#   scale_x_discrete(expand = c(0,0)) +
-#   scale_y_discrete(expand = c(0,0)) +
-#   theme_classic() +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-#         axis.line = element_blank(),
-#         axis.title = element_blank()) +
-#   labs(title = paste("Correlation Matrix for VME Group:", vmeoi), fill = "Correlation")
+plot_cor_allvars <- ggplot(data = cor_df, aes(x = var1, y = var2, fill = cor)) +
+  geom_tile(colour = "black") +
+  geom_text(aes(label = ifelse(cor > 0.7 | cor < -0.7, "*", "")), size = 3) +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", limit = c(-1,1), midpoint = 0) +
+  scale_x_discrete(expand = c(0,0)) +
+  scale_y_discrete(expand = c(0,0)) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text = element_text(size = 6),
+        axis.line = element_blank(),
+        axis.title = element_blank()) +
+  labs(title = paste("Correlation Matrix for VME Group:", vmeoi), fill = "Correlation")
 
-# ggsave(plot_cor_allvars,
-#   filename = paste0("output/02_Modelling_Outputs/",
-#     vmeoi, "_", poi, "_", sspoi, "_plot_cor_AllCMIPVars.png"), 
-#   width = 8, height = 6)
+ggsave(plot_cor_allvars,
+  filename = paste0("output/02_Modelling_Outputs/",vmeoi,"/",
+    vmeoi, "_", poi, "_", sspoi, "_plot_cor_AllCMIPVars.jpg"), 
+  width = 8, height = 6)
 
 
 ### Remove correlated variables based on importance ranking and VIF values ----
@@ -134,7 +133,7 @@ select_vme_vars <- function(pred_var_df, vmeoi, cor_threshold = 0.7, verbose = F
   
   while (!vif_threshold_met) {
     
-    # Calculate Spearman correlations
+    # Calculate Spearman correlations and remove correlated variables ----
     remove_cor_variables <- function(data, priority_list, current_threshold = 0.7, verbose = FALSE) {
       
       vars <- colnames(data)
@@ -189,7 +188,50 @@ select_vme_vars <- function(pred_var_df, vmeoi, cor_threshold = 0.7, verbose = F
     
     # Calculate VIF values
     # cat("\n   Calculating VIF values for selected variables\n")
+
+    # Determine if there are aliased variables to remove
+    find_aliased_vars <- function() {
+      data_alias <- as.data.frame(pred_var_df[, uncor_vars])
+      
+      form <- formula(paste("fooy ~ ", paste(strsplit(names(data_alias), " "), collapse = " + ")))
+      data_alias <- data.frame(fooy = 1 + rnorm(nrow(data_alias)), data_alias)
+      lm_mod <- lm(form, data_alias)
+
+      # Find aliased variables
+      aliased_vars <- alias(lm_mod)$Complete
+      return(aliased_vars)
+    }
+    aliased_vars_res <- find_aliased_vars()
+
+    # Remove aliased vars prior to VIF if aliased vars exist ----
+    if (!is.null(aliased_vars_res)) {
+      remove_aliased <- function() {
+
+        # Find aliased variables
+        aliased_vars <- aliased_vars_res %>% 
+          as.data.frame() %>%        
+          rownames_to_column() %>%
+          rename(aliased_var = rowname) %>%
+          pivot_longer(cols = !aliased_var, names_to = "variable", values_to = "alias_value") %>%
+          filter(alias_value != 0)
+        aliased_vars <- c(unique(aliased_vars$aliased_var), unique(aliased_vars$variable))
+
+        # Of the aliased variables, eliminate the least important one based on prelim RF results for each aliased variable grouping
+        rf_prelim_imp_aliased <- filter(rf_prelim_imp, Variable %in% aliased_vars) %>%
+          # Extract which variable to group by
+          mutate(var_group = str_extract(Variable, "^(\\w+?)_", group = 1)) %>%
+          group_by(var_group) %>%
+          slice(tail(row_number(), 1))
+        aliased_vars_eliminate <- rf_prelim_imp_aliased$Variable
+        uncor_unaliased_vars <- uncor_vars[!(uncor_vars %in% aliased_vars_eliminate)]
+
+        return(uncor_unaliased_vars)
+      }
     
+      uncor_vars <- remove_aliased()  # remove_aliased(pred_var_df[, uncor_vars])    
+    }
+
+
     corvif <- function(data, uncorrelated = uncor_vars, verbose = FALSE) {
       data <- as.data.frame(data)
       
@@ -197,14 +239,14 @@ select_vme_vars <- function(pred_var_df, vmeoi, cor_threshold = 0.7, verbose = F
       data <- data.frame(fooy = 1 + rnorm(nrow(data)), data)
       lm_mod <- lm(form, data)
 
-      # Removed aliased variables prior to VIF
-      aliased_vars <- alias(lm_mod)
-      uncor_unaliased_vars <- uncorrelated[!(uncorrelated %in% rownames(aliased_vars$Complete))]
+      # # Removed aliased variables prior to VIF
+      # aliased_vars <- alias(lm_mod)
+      # uncor_unaliased_vars <- uncorrelated[!(uncorrelated %in% rownames(aliased_vars$Complete))]
 
-      # New model with uncorrelated variables
-      form_new <- formula(paste("fooy ~ ", paste(uncor_unaliased_vars, collapse = " + ")))
-      data_new <- data.frame(fooy = 1 + rnorm(nrow(data)), data[, uncor_unaliased_vars, drop = FALSE])
-      lm_mod <- lm(form_new, data_new)
+      # # New model with uncorrelated variables
+      # form_new <- formula(paste("fooy ~ ", paste(uncor_unaliased_vars, collapse = " + ")))
+      # data_new <- data.frame(fooy = 1 + rnorm(nrow(data)), data[, uncor_unaliased_vars, drop = FALSE])
+      # lm_mod <- lm(form_new, data_new)
       
       # Calculate VIF
       VIF_result <- data.frame(vif = car::vif(lm_mod))
@@ -241,7 +283,7 @@ vif_df <- rbind(vif_df, vif_df_i)
 vme_df <- vme_df %>%
   select(all_of(c("VME_P_A", selected_vme_vars)))
 
-# Correlation matrix for selected variables
+# Correlation matrix for selected variables ----
 # cor_df <- cor(vme_df[, selected_vme_vars, drop = FALSE], 
 #                   method = "spearman",
 #                   use = "pairwise.complete.obs") %>%
@@ -266,7 +308,7 @@ vme_df <- vme_df %>%
 
 # ggsave(plot_cor_selvars,
 #   filename = paste0("output/02_StepByStepOutputs/", 
-#     paste(vmeoi, poi, sspoi, "plot_cor_SelCMIPVars", subsamp_title, ".png", sep = "_")), 
+#     paste(vmeoi, poi, sspoi, "plot_cor_SelCMIPVars", subsamp_title, ".jpg", sep = "_")), 
 #   width = 8, height = 6)
 
 # Create table of variable selection results for this iteration ----
@@ -420,25 +462,25 @@ terra::writeRaster(rf_pred_foldstack, filename = paste0("output/02_Modelling_Out
 # Extract variable importance for final selected variables ----
 cat("Extracting RF model variable importance metrics...\n")
 
-# fold_var_imp_df <- lapply(fold_var_imp, function(fold) {
-#   fold %>%
-#     filter(Variable %in% selected_vme_vars) %>%
-#     mutate(var_imp_rank = row_number())
-# }) %>%
-#   bind_rows(.id = "Fold") %>%
-#   mutate(Variable = fct_reorder(Variable, MeanDecreaseGini, .fun = mean)) %>%
-#   ungroup()
-# write.csv(fold_var_imp_df, file = paste0("output/02_Modelling_Outputs/",
-#   paste(vmeoi, poi, sspoi, "table_rf_VarImp", sep = "_"), ".csv"), row.names = FALSE)
+fold_var_imp_df <- lapply(fold_var_imp, function(fold) {
+  fold %>%
+    filter(Variable %in% selected_vme_vars) %>%
+    mutate(var_imp_rank = row_number())
+}) %>%
+  bind_rows(.id = "Fold") %>%
+  mutate(Variable = fct_reorder(Variable, MeanDecreaseGini, .fun = mean)) %>%
+  ungroup()
+write.csv(fold_var_imp_df, file = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
+  paste(vmeoi, poi, sspoi, "table_rf_VarImp", sep = "_"), ".csv"), row.names = FALSE)
 
-# ggplot(fold_var_imp_df, aes(y = Variable, x = MeanDecreaseGini)) +
-#   geom_boxplot() +
-#   theme_bw() +
-#   labs(y = "Predictor Variable", x = "Mean Decrease in Gini Index")
+ggplot(fold_var_imp_df, aes(y = Variable, x = MeanDecreaseGini)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(y = "Predictor Variable", x = "Mean Decrease in Gini Index")
 
-# ggsave(filename = paste0("output/02_Modelling_Outputs/",
-#   paste(vmeoi, poi, sspoi, "plot_rf_VarImp", sep = "_"), ".png"), 
-#   width = 6, height = 4)
+ggsave(filename = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
+  paste(vmeoi, poi, sspoi, "plot_rf_VarImp", sep = "_"), ".jpg"), 
+  width = 6, height = 4)
 
 
 # Extract partial dependence plots for each variable ----
@@ -449,7 +491,7 @@ cat("Extracting RF model variable importance metrics...\n")
 #   arrange(Fold, Variable, value) %>%
 #   mutate(Fold = as.factor(as.numeric(Fold)),
 #          Variable = factor(Variable, levels = rev(levels(fold_var_imp_df$Variable))))
-# write.csv(fold_partial_df, file = paste0("output/02_Modelling_Outputs/",
+# write.csv(fold_partial_df, file = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
 #   paste(vmeoi, poi, sspoi, "table_rf_PartialDep", sep = "_"), ".csv"), row.names = FALSE)
 
 # ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
@@ -458,8 +500,8 @@ cat("Extracting RF model variable importance metrics...\n")
 #   theme_bw() +
 #   labs(x = "Predictor Value", y = "Partial Dependence")
 
-# ggsave(filename = paste0("output/02_Modelling_Outputs/",
-#    paste(vmeoi, poi, sspoi, "plot_rf_PartialDep", sep = "_"), ".png"),
+# ggsave(filename = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
+#    paste(vmeoi, poi, sspoi, "plot_rf_PartialDep", sep = "_"), ".jpg"),
 #   width = 10, height = 8)
 
 

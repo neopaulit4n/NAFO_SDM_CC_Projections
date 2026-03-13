@@ -112,7 +112,7 @@ sa_lims <- c(min(sa_lims$X), max(sa_lims$X),min(sa_lims$Y),max(sa_lims$Y))
 # Transform CMIP data to raster ----
 transform_cmip_to_raster <- function(data, varstat, poi, sspoi) {
   
-  # Data must be ensembled dataframe with period and ssp columns
+  # Ensembled dataframe with period and ssp columns
   
   # Select a layer of data to raster
   df <- data %>%
@@ -124,7 +124,6 @@ transform_cmip_to_raster <- function(data, varstat, poi, sspoi) {
   pts <- terra::vect(df)
   
   # Determine resolution of data in degrees
-  # res <- round(ens_df_period_cell$lon[2]-ens_df_period_cell$lon[1], 5)
   res <- round(sort(unique(data$lon))[2] - sort(unique(data$lon))[1], 5)
   
   # Create template raster
@@ -133,7 +132,6 @@ transform_cmip_to_raster <- function(data, varstat, poi, sspoi) {
     resolution = res,
     crs = "EPSG:4326"
   )
-  # rast_template <- bathy_layers[[1]]
   
   # Rasterise points to grid
   rast_result <- terra::rasterize(pts, rast_template, field = varstat)

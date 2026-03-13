@@ -60,7 +60,6 @@ bathy_noaa <- readRDS("data/raw/Mapping_Layers/bathy_noaa.rds")
 metric_names <- c("MaxClass", "MaxClassF", "MaxClassAvgProb", "CombConf", "CVSum")
 
 ## Read in rasters ----
-
 rf_pred_all <- lapply(metric_names, function(metric) {
   metric_pred_names <- list.files(paste0("output/02_Modelling_Outputs/", vmeoi), pattern = paste0("rf_res_", metric, "\\.tif$"), full.names = TRUE)
   metric_preds <- terra::rast(c(metric_pred_names))
@@ -75,7 +74,6 @@ rf_pred_all <- lapply(metric_names, function(metric) {
   return(metric_preds)
 }) %>%
   set_names(metric_names)
-
 
 ## Generate plots ----
 

@@ -10,6 +10,10 @@ vme_all <- unique(resp_df$VME_Group)
 period_all <- c("P1", "P2", "P3", "P4")
 ssp_all <- unique(cmip_df_period_ssp$ssp)
 
+# vmeoi <- "black_corals"
+# poi <- "P1"
+# sspoi <- "2-4.5"
+
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----
 fold_metrics_summary_df <- data.frame(VME_Group = character(),
                                      Period = character(),
@@ -45,6 +49,7 @@ for (vmeoi in "black_corals") {  # vme_all
           "\n")
       loop_seed <- loop_seed + 1
       source("code/03_Modelling.R")
+      source("code/05_Extrapolation.R")
     }
   }
   
