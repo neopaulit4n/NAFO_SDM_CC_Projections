@@ -61,7 +61,7 @@ for (vmeoi in "black_corals") {  # vme_all
   write_csv(fold_metrics_summary_df, file.path("output/02_Modelling_Outputs", vmeoi, paste0(vmeoi, "_summary_fold_metrics.csv")))
   
   # Maps per VME group
-  # source("code/04_Mapping.R")
+  source("code/04_Mapping.R")
 }
 
 

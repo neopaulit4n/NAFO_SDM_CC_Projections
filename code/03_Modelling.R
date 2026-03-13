@@ -238,15 +238,6 @@ select_vme_vars <- function(pred_var_df, vmeoi, cor_threshold = 0.7, verbose = F
       form <- formula(paste("fooy ~ ", paste(strsplit(names(data), " "), collapse = " + ")))
       data <- data.frame(fooy = 1 + rnorm(nrow(data)), data)
       lm_mod <- lm(form, data)
-
-      # # Removed aliased variables prior to VIF
-      # aliased_vars <- alias(lm_mod)
-      # uncor_unaliased_vars <- uncorrelated[!(uncorrelated %in% rownames(aliased_vars$Complete))]
-
-      # # New model with uncorrelated variables
-      # form_new <- formula(paste("fooy ~ ", paste(uncor_unaliased_vars, collapse = " + ")))
-      # data_new <- data.frame(fooy = 1 + rnorm(nrow(data)), data[, uncor_unaliased_vars, drop = FALSE])
-      # lm_mod <- lm(form_new, data_new)
       
       # Calculate VIF
       VIF_result <- data.frame(vif = car::vif(lm_mod))
@@ -405,14 +396,14 @@ for (i in 1:10) {
     arrange(desc(MeanDecreaseGini))
 
   # Fold partial dependence data
-  # cat("  Extracting partial dependence data\n")
-  # fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
-  #   pdp::partial(rf_fold_model, 
-  #     pred.var = var,
-  #     plot = FALSE) %>%
-  #     mutate(Variable = colnames(.)[1]) %>%
-  #     rename(value = var)
-  # })
+  cat("  Extracting partial dependence data\n")
+  fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
+    pdp::partial(rf_fold_model, 
+      pred.var = var,
+      plot = FALSE) %>%
+      mutate(Variable = colnames(.)[1]) %>%
+      rename(value = var)
+  })
   
   cat("  Generating spatial predictions\n")
   # Spatial predictions for this fold
@@ -484,25 +475,25 @@ ggsave(filename = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
 
 
 # Extract partial dependence plots for each variable ----
-# fold_partial_df <- lapply(fold_partialdep, function(fold) {
-#   bind_rows(fold)
-# }) %>%
-#   bind_rows(.id = "Fold") %>%
-#   arrange(Fold, Variable, value) %>%
-#   mutate(Fold = as.factor(as.numeric(Fold)),
-#          Variable = factor(Variable, levels = rev(levels(fold_var_imp_df$Variable))))
-# write.csv(fold_partial_df, file = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
-#   paste(vmeoi, poi, sspoi, "table_rf_PartialDep", sep = "_"), ".csv"), row.names = FALSE)
+fold_partial_df <- lapply(fold_partialdep, function(fold) {
+  bind_rows(fold)
+}) %>%
+  bind_rows(.id = "Fold") %>%
+  arrange(Fold, Variable, value) %>%
+  mutate(Fold = as.factor(as.numeric(Fold)),
+         Variable = factor(Variable, levels = rev(levels(fold_var_imp_df$Variable))))
+write.csv(fold_partial_df, file = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
+  paste(vmeoi, poi, sspoi, "table_rf_PartialDep", sep = "_"), ".csv"), row.names = FALSE)
 
-# ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
-#   geom_line() +
-#   facet_wrap(~ Variable, scales = "free_x") +
-#   theme_bw() +
-#   labs(x = "Predictor Value", y = "Partial Dependence")
+ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
+  geom_line() +
+  facet_wrap(~ Variable, scales = "free_x") +
+  theme_bw() +
+  labs(x = "Predictor Value", y = "Partial Dependence")
 
-# ggsave(filename = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
-#    paste(vmeoi, poi, sspoi, "plot_rf_PartialDep", sep = "_"), ".jpg"),
-#   width = 10, height = 8)
+ggsave(filename = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
+   paste(vmeoi, poi, sspoi, "plot_rf_PartialDep", sep = "_"), ".jpg"),
+  width = 10, height = 8)
 
 
 # Calculate spatial metrics across folds ----
