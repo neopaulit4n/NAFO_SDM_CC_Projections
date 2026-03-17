@@ -10,9 +10,9 @@ vme_all <- unique(resp_df$VME_Group)
 period_all <- c("P1", "P2", "P3", "P4")
 ssp_all <- unique(cmip_df_period_ssp$ssp)
 
-# vmeoi <- "black_corals"
-# poi <- "P1"
-# sspoi <- "2-4.5"
+vmeoi <- "black_corals"
+poi <- "P1"
+sspoi <- "2-4.5"
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----
 fold_metrics_summary_df <- data.frame(VME_Group = character(),
@@ -108,3 +108,4 @@ sdm2024_raster_output_df <- data.frame(VME_group = vme_all,
           "Sponges/SpongesFG_v2/SpongesFG_v2VME_raster_output_cvsum.tif",
           "Sponges/SpongesVME_raster_output_cvsum.tif")) %>%
   mutate(across(MaxClass:CVSum, ~ file.path("output/SDM2024_orig", .x)))
+

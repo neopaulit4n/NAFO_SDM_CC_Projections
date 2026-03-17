@@ -5,47 +5,101 @@ cat("Computing extrapolations...")
 # samples = presence data points with associated covariate values (known) - points
 # prediction.grid = grid of covariate values across the study area for which presence is to be predicted (unknown) - points
 
-# vmeoi <- "black_corals"
-
+# Prepare layers ----
 # Convert selected vme layers to points
 extrap_grid <- terra::as.data.frame(vme_layers_rast, xy = TRUE) %>%
   drop_na()
 
-vme_pts <- cmip_comb_df %>%
+## Presence and absence (original) ----
+vme_pts_pa <- cmip_comb_df %>%
   filter(VME_Group == vmeoi) %>%
   select(x = Start_Long_DD, y = Start_Lat_DD, all_of(selected_vme_vars)) %>%
   as.data.frame()
 
-extrapolation_area <- dsmextra::compute_extrapolation(samples = vme_pts,
-  covariate.names = selected_vme_vars,
-  prediction.grid = extrap_grid,
-  coordinate.system = sp::CRS(SRS_string = "EPSG:4326"))
+## Presence only (refugia) ----
+vme_pts_pres <- cmip_comb_df %>%
+  filter(VME_Group == vmeoi,
+         VME_P_A == "Presence") %>%
+  select(x = Start_Long_DD, y = Start_Lat_DD, all_of(selected_vme_vars)) %>%
+  as.data.frame()
 
-# Determine which extrapolation types are not null
-extrap_types <- c("univariate", "combinatorial", "analogue")[which(sapply(extrapolation_area$data, nrow)[2:4] > 0)]
+# Compute extrapolations for each dataset ----
+# extrapolation_area <- dsmextra::compute_extrapolation(
+#   samples = vme_pts,
+#   covariate.names = selected_vme_vars,
+#   prediction.grid = extrap_grid,
+#   coordinate.system = sp::CRS(SRS_string = "EPSG:4326"))
 
-# Extract extrapolation rasters
-extrapolation_rasters <- lapply(c("ExDet", "mic"), function(method) {
-  lapply(extrap_types, function(type) {
-    terra::rast(extrapolation_area$rasters[[method]][[type]])
+extrapolation_area <- lapply(list(vme_pts_pa, vme_pts_pres), function(dataset) {
+  dsmextra::compute_extrapolation(
+    samples = dataset,
+    covariate.names = selected_vme_vars,
+    prediction.grid = extrap_grid,
+    coordinate.system = sp::CRS(SRS_string = "EPSG:4326"))
+})
+
+
+# Extract extrapolation rasters ----
+extrapolation_rasters <- lapply(extrapolation_area, function(extrap) {
+  # Determine which extrapolation types are not null
+  extrap_types <- c("univariate", "combinatorial", "analogue")[which(sapply(extrap$data, nrow)[2:4] > 0)]
+  lapply(c("ExDet", "mic"), function(method) {
+    lapply(extrap_types, function(type) {
+      terra::rast(extrap$rasters[[method]][[type]])
+    }) %>%
+      set_names(extrap_types)
   }) %>%
-    set_names(extrap_types)
+    set_names(c("ExDet", "mic")) %>%
+    unlist(recursive = FALSE)
 }) %>%
-  set_names(c("ExDet", "mic")) %>%
-  unlist(recursive = FALSE)
+  set_names(c("PA","PresenceOnly")) %>%
+  unlist()
 
-extrapolation_maps <- lapply(1:length(extrapolation_rasters), function(x) {
+# Generate maps ----
+# extrap2plot <- extrapolation_rasters[-grep("mic.analogue", names(extrapolation_rasters))]
+extrapolation_maps <- lapply(extrap2plot, function(x) {
   ggplot() +
-    tidyterra::geom_spatraster(data = extrapolation_rasters[[x]]) +
+    tidyterra::geom_spatraster(data = x) +
     scale_fill_viridis_c(na.value = "transparent") +
-    labs(title = names(extrapolation_rasters)[[x]]) +
+    labs(title = names(extrap2plot)) +
     theme_minimal()  
 })
 
-extrapolation_map_grid <- cowplot::plot_grid(plotlist = extrapolation_maps, ncol = length(extrap_types))
+extrapolation_map_grid <- cowplot::plot_grid(plotlist = extrapolation_maps, nrow = 2)
 ggsave(paste0("output/03_RF_Map_Outputs/",vmeoi,"_extrapolations_",poi,"_",sspoi,".jpg"), 
   plot = extrapolation_map_grid,
   width = 10, height = 5, dpi = 300)
+
+# Extrapolation analysis (extract raster percentages) ----
+extrap_analysis <- lapply(list(vme_pts_pa, vme_pts_pres), function(dataset) {
+  x <- dsmextra::extrapolation_analysis(
+    samples = dataset,
+    covariate.names = selected_vme_vars,
+    prediction.grid = extrap_grid,
+    coordinate.system = sp::CRS(SRS_string = "EPSG:4326"),
+    nearby.compute = FALSE,
+    map.generate = FALSE
+  )
+  temp_extrap <- x$extrapolation$summary$extrapolation %>%
+    as.data.frame() %>%
+    pivot_longer(cols = everything(), 
+      cols_vary = "slowest",
+      names_sep = "\\.",
+      names_to = c("Type","metric")) %>%
+    pivot_wider(names_from = "metric", values_from = "value") %>%
+    rename(freq = n, perc = p) %>%
+    mutate(Type = str_to_sentence(Type),
+      covariate = "Overall")
+  temp_mic <- x$extrapolation$summary$mic %>%
+    bind_rows()
+  temp <- bind_rows(temp_extrap, temp_mic)
+  return(temp)
+}) %>%
+  set_names("PA", "PresenceOnly") %>%
+  bind_rows(.id = "InputData")
+
+write_csv(extrap_analysis, paste0("output/02_Modelling_Outputs/",vmeoi,"/",vmeoi,"_",poi,"_",sspoi,"_extrapolation_percentages.csv"))
+
 
 
 # Load previous SDM2024 extrapolation maps for comparison ----
@@ -54,11 +108,12 @@ ggsave(paste0("output/03_RF_Map_Outputs/",vmeoi,"_extrapolations_",poi,"_",sspoi
 # sdm2024_extana <- terra::rast("output/SDM2024_orig/Black Coral/BlackCorals_raster_output_sens_spe/BlackCorals_ext.analogue.tif")
 # sdm2024_extcomb <- terra::rast("output/SDM2024_orig/Black Coral/BlackCorals_raster_output_sens_spe/BlackCorals_ext.combinatorial.tif")
 # sdm2024_extuni <- terra::rast("output/SDM2024_orig/Black Coral/BlackCorals_raster_output_sens_spe/BlackCorals_ext.univariate.tif")
+# sdm2024_micana <- terra::rast("output/SDM2024_orig/Sea Pens/SeapensVME_mic.analogue.tif")
 
 # terra::plot(sdm2024_extana)
 # terra::plot(sdm2024_extcomb)
 # terra::plot(sdm2024_extuni)
-
+# terra::plot(sdm2024_micana)
 
 # Debugging (NULL combinatorial) ----
 

@@ -109,7 +109,6 @@ compute_presence_areas <- function(metric) {
 }
 
 
-
 ## Generate plots ----
 
 # Try alternative method using facet_wrap for each metric
