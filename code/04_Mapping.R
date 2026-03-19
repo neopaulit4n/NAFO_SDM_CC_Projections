@@ -79,7 +79,6 @@ rf_pred_all <- lapply(metric_names, function(metric) {
 
 # r <- rf_pred_all$MaxClass$`1-2.6_P1`
 
-
 # # Subset raster to presence cells only (mask out absence)
 # presence_raster <- terra::ifel(r == 1, r, NA)
 
@@ -171,7 +170,7 @@ rf_pred_maps <- lapply(metric_names, function(metric) {
     scale_y_continuous(expand = c(0,0))
 
   ggsave(paste0("output/03_RF_Map_Outputs/", vmeoi, "_", metric, "_facet.jpg"), p,
-         width = 10, height = 10, dpi = 300)
+    width = 10, height = 10, dpi = 300)
 
 })
 

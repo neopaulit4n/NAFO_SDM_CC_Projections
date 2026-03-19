@@ -15,12 +15,14 @@ poi <- "P1"
 sspoi <- "2-4.5"
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----
-fold_metrics_summary_df <- data.frame(VME_Group = character(),
-                                     Period = character(),
-                                     SSP = character(),
-                                     metric = character(),
-                                     mean_value = numeric(),
-                                     sd_value = numeric())
+fold_metrics_summary_df <- data.frame(
+  VME_Group = character(),
+  Period = character(),
+  SSP = character(),
+  metric = character(),
+  mean_value = numeric(),
+  sd_value = numeric()
+)
 
 # Loop through each combination of VME group, period, SSP, and subsampling option ----
 loop_seed <- 411

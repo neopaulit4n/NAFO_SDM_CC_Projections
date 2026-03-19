@@ -24,12 +24,6 @@ vme_pts_pres <- cmip_comb_df %>%
   as.data.frame()
 
 # Compute extrapolations for each dataset ----
-# extrapolation_area <- dsmextra::compute_extrapolation(
-#   samples = vme_pts,
-#   covariate.names = selected_vme_vars,
-#   prediction.grid = extrap_grid,
-#   coordinate.system = sp::CRS(SRS_string = "EPSG:4326"))
-
 extrapolation_area <- lapply(list(vme_pts_pa, vme_pts_pres), function(dataset) {
   dsmextra::compute_extrapolation(
     samples = dataset,
@@ -55,20 +49,133 @@ extrapolation_rasters <- lapply(extrapolation_area, function(extrap) {
   set_names(c("PA","PresenceOnly")) %>%
   unlist()
 
-# Generate maps ----
-# extrap2plot <- extrapolation_rasters[-grep("mic.analogue", names(extrapolation_rasters))]
-extrapolation_maps <- lapply(extrap2plot, function(x) {
+
+# Extrapolation layer maps ----
+
+## Prepare rasters for mapping ----
+extrapolation_rasters_mask <- lapply(1:length(extrapolation_rasters), function(x) {
+  layer <- terra::mask(extrapolation_rasters[[x]], !is.na(extrapolation_rasters[[x]]))
+  if (x %in% grep("mic", names(extrapolation_rasters))) {
+    layer <- terra::as.factor(layer)
+    levels(layer) <- data.frame(id = 0:length(selected_vme_vars), covariate = c("None", selected_vme_vars))
+  }
+  return(layer)
+}) %>%
+  set_names(names(extrapolation_rasters))
+
+# dsmextra::map_extrapolation(map.type = "extrapolation", extrapolation.object = extrapolation_area[[1]])
+
+## Extract limits for univariate and combinatorial legends ----
+lim_uni <- c(
+  min(c(extrapolation_area[[1]]$data$univariate$ExDet, extrapolation_area[[2]]$data$univariate$ExDet)),
+  max(c(extrapolation_area[[1]]$data$univariate$ExDet, extrapolation_area[[2]]$data$univariate$ExDet))  
+)
+lim_comb <- c(
+  min(c(extrapolation_area[[1]]$data$combinatorial$ExDet, extrapolation_area[[2]]$data$combinatorial$ExDet)),
+  max(c(extrapolation_area[[1]]$data$combinatorial$ExDet, extrapolation_area[[2]]$data$combinatorial$ExDet))  
+)
+
+## Generate ExDet maps ----
+library(patchwork)
+extrap_exdet_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
   ggplot() +
-    tidyterra::geom_spatraster(data = x) +
-    scale_fill_viridis_c(na.value = "transparent") +
-    labs(title = names(extrap2plot)) +
-    theme_minimal()  
+    theme_classic() +
+    labs(title = ifelse(dataset == "PA", "Presence + Absence", "Presence Only")) +
+    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"ExDet","analogue", sep = "\\."),names(extrapolation_rasters_mask))]]) +
+    scale_fill_distiller(
+      name = "Analogue",
+      palette = "Greys",
+      limits = c(0, 1),
+      direction = 1,
+      na.value = "transparent"
+    ) +
+    ggnewscale::new_scale_fill() +
+    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"ExDet","univariate", sep = "\\."),names(extrapolation_rasters_mask))]]) +
+    scale_fill_distiller(
+      name = "Univariate",
+      palette = "Oranges",
+      limits = lim_uni,
+      direction = 1,
+      na.value = "transparent"
+    ) +
+    ggnewscale::new_scale_fill() +
+    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]]) +
+    scale_fill_distiller(
+      name = "Combinatorial",
+      palette = "Greens",
+      limits = lim_comb,
+      direction = 1,
+      na.value = "transparent"
+    ) +
+    if (dataset == "PresenceOnly") {
+      theme(
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        legend.box = "horizontal",
+        legend.position = "inside",
+        legend.position.inside = c(0.75, 0.2),
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(5, "mm")
+      )
+    } else {
+      theme(legend.position = "none")
+    }
 })
 
-extrapolation_map_grid <- cowplot::plot_grid(plotlist = extrapolation_maps, nrow = 2)
+# Use patchwork to create combined plot
+# extrap_exdet_maps <- extrap_exdet_maps[[1]] + extrap_exdet_maps[[2]] + 
+#   patchwork::plot_layout(axes = "collect")
+
+# Save
+# ggsave(paste0("output/03_RF_Map_Outputs/",vmeoi,"_extrapolations_ExDet_",poi,"_",sspoi,".jpg"), 
+#   plot = extrap_exdet_maps,
+#   width = 10, height = 5, dpi = 300)
+
+
+## Generate MIC maps ----
+extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
+  ggplot() +
+    theme_classic() +
+    labs(title = ifelse(dataset == "PA", "Presence + Absence", "Presence Only")) +
+    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(extrapolation_rasters_mask))]]) +
+    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(extrapolation_rasters_mask))]]) +
+    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]]) +
+    paletteer::scale_fill_paletteer_d(palette = "colorBlindness::paletteMartin", 
+      name = "Covariate", na.value = "transparent", na.translate = FALSE) +
+    if (dataset == "PresenceOnly") {
+      theme(
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "inside",
+        legend.position.inside = c(0.75, 0.27),
+        legend.box.just = c("left", "top"),
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(5, "mm")
+      )
+    } else {
+      theme(legend.position = "none")
+    }
+})
+
+# Use patchwork to create combined plot
+# extrap_mic_maps <- extrap_mic_maps[[1]] + extrap_mic_maps[[2]] +
+#   patchwork::plot_layout(axes = "collect")
+
+# Save
+# ggsave(paste0("output/03_RF_Map_Outputs/",vmeoi,"_extrapolations_MIC_",poi,"_",sspoi,".jpg"), 
+#   plot = extrap_mic_maps,
+#   width = 10, height = 5, dpi = 300)
+
+# Save both together
+extrap_exdet_maps[[1]] + extrap_exdet_maps[[2]] + extrap_mic_maps[[1]] + extrap_mic_maps[[2]] +
+  patchwork::plot_layout(axes = "collect")
 ggsave(paste0("output/03_RF_Map_Outputs/",vmeoi,"_extrapolations_",poi,"_",sspoi,".jpg"), 
-  plot = extrapolation_map_grid,
-  width = 10, height = 5, dpi = 300)
+  width = 10, height = 10, dpi = 300)
+
 
 # Extrapolation analysis (extract raster percentages) ----
 extrap_analysis <- lapply(list(vme_pts_pa, vme_pts_pres), function(dataset) {
@@ -101,6 +208,49 @@ extrap_analysis <- lapply(list(vme_pts_pa, vme_pts_pres), function(dataset) {
 write_csv(extrap_analysis, paste0("output/02_Modelling_Outputs/",vmeoi,"/",vmeoi,"_",poi,"_",sspoi,"_extrapolation_percentages.csv"))
 
 
+# Overlay univariate extrapolation layer with MaxClass map layer for both PA and PresenceOnly datasets ----
+extrap_uni <- extrapolation_rasters$PA.ExDet.univariate
+extrap_uni <- terra::ifel(!is.na(extrap_uni), 1, NA) %>%
+  terra::extend(rf_pred_all$MaxClass$`1-2.6_P1`) %>%
+  terra::subst(NA, 0)
+extrap_uni_maxclass <- rf_pred_all$MaxClass$`1-2.6_P1` + extrap_uni * 2
+levels(extrap_uni_maxclass) <- data.frame(
+  value = 0:3,
+  label = c(
+    "Absence (not extrapolated)",
+    "Presence (not extrapolated)",
+    "Absence (extrapolated)",
+    "Presence (extrapolated)"
+  )
+)
+
+ggplot() +
+    theme_classic() +    
+    tidyterra::geom_spatraster(data = extrap_uni_maxclass, na.rm = TRUE) +
+    scale_fill_manual(
+      values = c(
+        "Absence (not extrapolated)" = "#ffebcd", 
+        "Presence (not extrapolated)" = "#b87333", 
+        "Absence (extrapolated)" = "coral", 
+        "Presence (extrapolated)" = "coral4"
+      ),
+      na.value = "transparent",
+      na.translate = FALSE
+    ) +
+    # geom_contour(data = bathy_noaa, 
+    #   aes(x = x, y = y, z = z, fill = NULL), 
+    #   breaks = seq(from = -50, to = -5000, by = -250),
+    #   color = "darkgrey", 
+    #   linewidth = 0.3, 
+    #   alpha = 0.4) +
+    theme(legend.position = "right",
+          legend.title = element_blank(),
+          axis.title = element_blank()) +
+    scale_x_continuous(expand = c(0,0)) +
+    scale_y_continuous(expand = c(0,0))
+ggsave(paste0("output/03_RF_Map_Outputs/",vmeoi,"_MaxClass_UnivariateExtrapOverlay_",poi,"_",sspoi,".jpg"), 
+  # plot = extrap_mic_maps,
+  width = 5, height = 5, dpi = 300)
 
 # Load previous SDM2024 extrapolation maps for comparison ----
 
