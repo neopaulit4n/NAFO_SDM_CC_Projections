@@ -18,55 +18,50 @@ bathy_layers <- list.files(path = "data/raw/BNAM_Data_From_Cam/Bathymetry_Terrai
 names(bathy_layers) <- gsub("GEBCO2024_FS005_StudyArea_","",names(bathy_layers))
 names(bathy_layers)[1] <- "FS005"
 
-## Load BNAM layers (will use these to form predictions, decide which variables to select) ----
+# ## Load BNAM layers (will use these to form predictions, decide which variables to select) ----
 bnam_layers <- list.files("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint", 
                           pattern = "\\.tif$", full.names = TRUE) %>%
   set_names(., nm = basename(.) %>% tools::file_path_sans_ext()) %>%
   lapply(terra::rast) %>%
   lapply(terra::project, "EPSG:4326")
 
-match_cmip_names <- function(bnam_name) {
-  first_result <- case_when(
-    str_detect(bnam_name, "b_cur") ~ str_replace(bnam_name, "NRA_BNAM_b_cur(_avg)*", "wobavg"),
-    str_detect(bnam_name, "b_sal") ~ str_replace(bnam_name, "NRA_BNAM_b_sal(_avg)*", "sobavg"),
-    str_detect(bnam_name, "b_stress") ~ str_replace(bnam_name, "NRA_BNAM_b_stress(_avg)*", "bstress"),
-    str_detect(bnam_name, "b_tmp") ~ str_replace(bnam_name, "NRA_BNAM_b_tmp(_avg)*", "tobavg"),
-    str_detect(bnam_name, "MLD_ann") ~ str_replace(bnam_name, "NRA_BNAM_MLD_ann", "mldavg"),
-    str_detect(bnam_name, "MLD_fall") ~ str_replace(bnam_name, "NRA_BNAM_MLD_fall_10_12", "mldavg_F"),
-    str_detect(bnam_name, "MLD_spr") ~ str_replace(bnam_name, "NRA_BNAM_MLD_spr_04_06", "mldavg_Sp"),
-    str_detect(bnam_name, "MLD_sum") ~ str_replace(bnam_name, "NRA_BNAM_MLD_sum_07_09", "mldavg_Su"),
-    str_detect(bnam_name, "MLD_win") ~ str_replace(bnam_name, "NRA_BNAM_MLD_win_01_03", "mldavg_W"),
-    str_detect(bnam_name, "s_sal") ~ str_replace(bnam_name, "NRA_BNAM_s_sal(_avg)*", "sosavg"),
-    str_detect(bnam_name, "s_tmp") ~ str_replace(bnam_name, "NRA_BNAM_s_tmp(_avg)*", "tosavg"),
-    TRUE ~ NA_character_
-  )
+# match_cmip_names <- function(bnam_name) {
+#   first_result <- case_when(
+#     str_detect(bnam_name, "b_cur") ~ str_replace(bnam_name, "NRA_BNAM_b_cur(_avg)*", "wobavg"),
+#     str_detect(bnam_name, "b_sal") ~ str_replace(bnam_name, "NRA_BNAM_b_sal(_avg)*", "sobavg"),
+#     str_detect(bnam_name, "b_stress") ~ str_replace(bnam_name, "NRA_BNAM_b_stress(_avg)*", "bstress"),
+#     str_detect(bnam_name, "b_tmp") ~ str_replace(bnam_name, "NRA_BNAM_b_tmp(_avg)*", "tobavg"),
+#     str_detect(bnam_name, "MLD_ann") ~ str_replace(bnam_name, "NRA_BNAM_MLD_ann", "mldavg"),
+#     str_detect(bnam_name, "MLD_fall") ~ str_replace(bnam_name, "NRA_BNAM_MLD_fall_10_12", "mldavg_F"),
+#     str_detect(bnam_name, "MLD_spr") ~ str_replace(bnam_name, "NRA_BNAM_MLD_spr_04_06", "mldavg_Sp"),
+#     str_detect(bnam_name, "MLD_sum") ~ str_replace(bnam_name, "NRA_BNAM_MLD_sum_07_09", "mldavg_Su"),
+#     str_detect(bnam_name, "MLD_win") ~ str_replace(bnam_name, "NRA_BNAM_MLD_win_01_03", "mldavg_W"),
+#     str_detect(bnam_name, "s_sal") ~ str_replace(bnam_name, "NRA_BNAM_s_sal(_avg)*", "sosavg"),
+#     str_detect(bnam_name, "s_tmp") ~ str_replace(bnam_name, "NRA_BNAM_s_tmp(_avg)*", "tosavg"),
+#     TRUE ~ NA_character_
+#   )
   
-  second_result <- ifelse(str_detect(first_result, "_ran"), NA_character_, first_result)
-  return(second_result)
+#   second_result <- ifelse(str_detect(first_result, "_ran"), NA_character_, first_result)
+#   return(second_result)
   
-}
+# }
 
-names(bnam_layers) <- sapply(names(bnam_layers), match_cmip_names)
-bnam_layers <- bnam_layers[!is.na(names(bnam_layers))]
+# names(bnam_layers) <- sapply(names(bnam_layers), match_cmip_names)
+# bnam_layers <- bnam_layers[!is.na(names(bnam_layers))]
 
+# ### Extract predictor values at response locations ----
+# bnam_pred_df <- lapply(c(bathy_layers, bnam_layers), function(layer) {
+#   terra::extract(layer, 
+#                  select(resp_df, Start_Long_DD, Start_Lat_DD)) %>%
+#     select(-ID)
+# }) %>%
+#   bind_cols()
+# colnames(bnam_pred_df) <- c(names(bathy_layers), names(bnam_layers))
 
-# Extract predictor values at response locations ----
-bnam_pred_df <- lapply(c(bathy_layers, bnam_layers), function(layer) {
-  terra::extract(layer, 
-                 select(resp_df, Start_Long_DD, Start_Lat_DD)) %>%
-    select(-ID)
-}) %>%
-  bind_cols()
-colnames(bnam_pred_df) <- c(names(bathy_layers), names(bnam_layers))
-
-
-# Combine predictor and response dataframes ----
-bnam_df <- bind_cols(resp_df, bnam_pred_df) %>%
-  mutate(VME_P_A = factor(VME_P_A, levels = c(0, 1), labels = c("Absence", "Presence"))) %>%
-  drop_na()
-
-# bnam_df_miss <- bnam_df[which(!complete.cases(bnam_df)),]  # run this before drop_na()
-
+# # Combine predictor and response dataframes ----
+# bnam_df <- bind_cols(resp_df, bnam_pred_df) %>%
+#   mutate(VME_P_A = factor(VME_P_A, levels = c(0, 1), labels = c("Absence", "Presence"))) %>%
+#   drop_na()
 
 # Load ensembled CMIP data ----
 cmip_df <- readRDS("data/processed/ens_df.rds") %>%
@@ -74,27 +69,33 @@ cmip_df <- readRDS("data/processed/ens_df.rds") %>%
   mutate(mldavg = coalesce(mldavg_W,mldavg_F,mldavg_Su,mldavg_Sp)) %>%
   select(-dep)  # will use terrain variable FS005 for depth instead
   
-
 # Load selected terrain static variables ----
 terrain_topvars <- read_csv("data/processed/VarImp_2024_2025_SCR_02_TopStaticVarsByVME.csv", show_col_types = FALSE)
 
+# Create baseline "current" dataframe that will build the models used for predictions ----
+current_df <- cmip_df %>%
+  filter(is.na(period)) %>%
+  group_by(lon, lat, ssp) %>%
+  summarise(across(sobavg:mldavg, 
+    list(
+      mean = ~mean(.x, na.rm = TRUE),
+      min = ~min(.x, na.rm = TRUE),
+      max = ~max(.x, na.rm = TRUE), 
+      range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)
+    ),
+     .names = "{col}_{fn}")) %>%
+  ungroup()
 
-# Average predictors for each period and SSP ----
+# Average predictors for each period and SSP (will use these to predict on) ----
 cmip_df_period_ssp <- cmip_df %>%
   filter(!is.na(period)) %>%
   group_by(lon, lat, period, ssp) %>%
-  # summarise(across(sobavg:mldavg, \(x) mean(x, na.rm = TRUE)), .groups = "drop")  
   summarise(across(sobavg:mldavg, list(mean = ~mean(.x, na.rm = TRUE),
                                        min = ~min(.x, na.rm = TRUE),
                                        max = ~max(.x, na.rm = TRUE), 
                                        range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)),
                    .names = "{col}_{fn}")) %>%
-  ungroup() #%>%
-  # # Only keep max mldavg
-  # select(-(starts_with("mldavg") & !ends_with("_max"))) %>%
-  # # mldavg_max (annual) and mldavg_W_max are identical so remove annual var
-  # select(-mldavg_max)
-
+  ungroup()
 
 # Get study area extent and create spatial mask ----
 sa <- terra::rast("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint/NRA_BNAM_b_cur_avg_max.tif") %>%
@@ -110,13 +111,12 @@ sa_lims <- sf::st_coordinates(sa) %>% as.data.frame %>%
 sa_lims <- c(min(sa_lims$X), max(sa_lims$X),min(sa_lims$Y),max(sa_lims$Y))
 
 # Transform CMIP data to raster ----
-transform_cmip_to_raster <- function(data, varstat, poi, sspoi) {
-  
-  # Ensembled dataframe with period and ssp columns
-  
+transform_cmip_to_raster <- function(data, varstat, poi = NULL, sspoi = NULL) {
+
   # Select a layer of data to raster
   df <- data %>%
-    filter(ssp == sspoi, period == poi) %>%
+    filter(if(!is.null(sspoi)) ssp == sspoi else TRUE) %>%
+    filter(if(!is.null(poi)) period == poi else TRUE) %>%
     select(lon, lat, !!sym(varstat)) %>%
     sf::st_as_sf(coords = c("lon","lat"), crs = 4326)
   
@@ -141,9 +141,6 @@ transform_cmip_to_raster <- function(data, varstat, poi, sspoi) {
   return(rast_resamp)
   
 }
-
-# data = cmip_df_period_ssp
-# varstat=cmip_vars[9]
 
 cmip_vars <- colnames(select(cmip_df_period_ssp, contains("_")))
 

@@ -9,23 +9,24 @@ source("code/01_LoadData.R")
 vme_all <- unique(resp_df$VME_Group)
 period_all <- c("P1", "P2", "P3", "P4")
 ssp_all <- unique(cmip_df_period_ssp$ssp)
+period_ssp_all <- apply(expand.grid(period_all, ssp_all), 1, paste, sep = "_", collapse = "_")
 
 vmeoi <- "black_corals"
-poi <- "P1"
-sspoi <- "2-4.5"
+# poi <- "P1"
+# sspoi <- "1-2.6"
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----
 fold_metrics_summary_df <- data.frame(
   VME_Group = character(),
-  Period = character(),
-  SSP = character(),
+  # Period = character(),
+  # SSP = character(),
   metric = character(),
   mean_value = numeric(),
   sd_value = numeric()
 )
 
 # Loop through each combination of VME group, period, SSP, and subsampling option ----
-loop_seed <- 411
+loop_seed <- 412
 for (vmeoi in "black_corals") {  # vme_all
   
   # Table to save variable selection results
@@ -42,18 +43,12 @@ for (vmeoi in "black_corals") {  # vme_all
     variable = character(),
     vif = numeric())
   
-  for (poi in period_all) {
-    for (sspoi in ssp_all) {
-      # Call modelling code for this combination of parameters
-      cat("Running modelling for VME group:", vmeoi, 
-          "Period:", poi, 
-          "SSP:", sspoi,
-          "\n")
-      loop_seed <- loop_seed + 1
-      source("code/03_Modelling.R")
-      source("code/05_Extrapolation.R")
-    }
-  }
+  # Modelling for this VME group
+  cat("Running modelling for VME group:", vmeoi, 
+      "\n")
+  source("code/03_Modelling.R")
+  source("code/05_Extrapolation.R")
+  loop_seed <- loop_seed + 1      
   
   # Summary outputs by VME group
   var_select_df <- filter(var_select_df, vmeoi == vmeoi) %>%
