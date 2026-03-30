@@ -73,17 +73,16 @@ cmip_df <- readRDS("data/processed/ens_df.rds") %>%
 terrain_topvars <- read_csv("data/processed/VarImp_2024_2025_SCR_02_TopStaticVarsByVME.csv", show_col_types = FALSE)
 
 # Create baseline "current" dataframe that will build the models used for predictions ----
-current_df <- cmip_df %>%
-  filter(is.na(period)) %>%
-  group_by(lon, lat, ssp) %>%
-  summarise(across(sobavg:mldavg, 
+current_df <- read_csv("data/cleaned/cmip_ens_1993_2014_df.csv", show_col_types = FALSE) %>%
+  group_by(lon, lat) %>%
+  summarise(across(tosavg:bstress, 
     list(
       mean = ~mean(.x, na.rm = TRUE),
       min = ~min(.x, na.rm = TRUE),
       max = ~max(.x, na.rm = TRUE), 
       range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)
     ),
-     .names = "{col}_{fn}")) %>%
+    .names = "{col}_{fn}")) %>%
   ungroup()
 
 # Average predictors for each period and SSP (will use these to predict on) ----

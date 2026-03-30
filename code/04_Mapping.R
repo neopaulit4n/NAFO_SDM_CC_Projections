@@ -60,11 +60,26 @@ bathy_noaa <- readRDS("data/raw/Mapping_Layers/bathy_noaa.rds")
 metric_names <- c("MaxClass", "MaxClassF", "MaxClassAvgProb", "CombConf", "CVSum")
 
 ## Read in rasters ----
-rf_pred_all <- lapply(metric_names, function(metric) {
-  metric_pred_names <- list.files(paste0("output/02_Modelling_Outputs/", vmeoi), pattern = paste0("rf_res_", metric, "\\.tif$"), full.names = TRUE)
-  metric_preds <- terra::rast(c(metric_pred_names))
+rf_pred_future_all <- lapply(metric_names, function(metric) {
+  metric_pred_names <- list.files(paste0("output/02_Modelling_Outputs/", vmeoi), pattern = paste0("rf_res_future_", metric, "_"), full.names = TRUE)
+  metric_preds <- terra::rast(metric_pred_names)
   names(metric_preds) <- paste0(str_extract(metric_pred_names, "1-2.6|2-4.5|3-7.0|5-8.5"), "_", str_extract(metric_pred_names, "P[1-4]"))
   metric_preds <- metric_preds[[order(names(metric_preds))]]  # reorder layers by period (P1-P4) within each SSP for facetting
+  
+  # Factorise MaxClass rasters for plotting
+  if (metric == "MaxClass") {
+    metric_preds <- terra::as.factor(metric_preds)
+  }
+
+  return(metric_preds)
+}) %>%
+  set_names(metric_names)
+
+rf_pred_current_all <- lapply(metric_names, function(metric) {
+  metric_pred_names <- list.files(paste0("output/02_Modelling_Outputs/", vmeoi), pattern = paste0("rf_res_current_", metric, "\\.tif"), full.names = TRUE)
+  metric_preds <- terra::rast(metric_pred_names)
+  # names(metric_preds) <- paste0(str_extract(metric_pred_names, "1-2.6|2-4.5|3-7.0|5-8.5"), "_", str_extract(metric_pred_names, "P[1-4]"))
+  # metric_preds <- metric_preds[[order(names(metric_preds))]]  # reorder layers by period (P1-P4) within each SSP for facetting
   
   # Factorise MaxClass rasters for plotting
   if (metric == "MaxClass") {
@@ -114,21 +129,21 @@ compute_presence_areas <- function(metric) {
 rf_pred_maps <- lapply(metric_names, function(metric) {
   
   # Compute area labels for MaxClass only
-  area_label_layer <- if (metric == "MaxClass") {
-    area_df <- compute_presence_areas(metric)
-    geom_label(
-      data = area_df,
-      aes(label = label),
-      x = -50, y = 48, 
-      hjust = 1.05, vjust = -0.5,
-      size = 3,
-      fill = alpha("white", 0.7),
-      label.size = NA,
-      inherit.aes = FALSE
-    )
-  } else {
-    NULL  # ggplot silently ignores NULL layers
-  }
+  # area_label_layer <- if (metric == "MaxClass") {
+  #   area_df <- compute_presence_areas(metric)
+  #   geom_label(
+  #     data = area_df,
+  #     aes(label = label),
+  #     x = -50, y = 48, 
+  #     hjust = 1.05, vjust = -0.5,
+  #     size = 3,
+  #     fill = alpha("white", 0.7),
+  #     label.size = NA,
+  #     inherit.aes = FALSE
+  #   )
+  # } else {
+  #   NULL  # ggplot silently ignores NULL layers
+  # }
 
   # Define fill scale based on metric
   ggtheme_metric <- switch(metric,
@@ -150,10 +165,31 @@ rf_pred_maps <- lapply(metric_names, function(metric) {
   )
 
   # Create plot
-  p <- ggplot() +
+  # p <- ggplot() +
+  #   theme_classic() +    
+  #   tidyterra::geom_spatraster(data = rf_pred_future_all[[metric]], na.rm = TRUE) +
+  #   facet_wrap(~ lyr, ncol = 4) +
+  #   ggtheme_metric() +
+  #   geom_contour(data = bathy_noaa, 
+  #     aes(x = x, y = y, z = z, fill = NULL), 
+  #     breaks = seq(from = -50, to = -5000, by = -250),
+  #     color = "darkgrey", 
+  #     linewidth = 0.3, 
+  #     alpha = 0.4) +
+  #   # Add area label per facet
+  #   # area_label_layer +
+  #   theme(legend.position = "right",
+  #         legend.title = element_blank(),
+  #         axis.title = element_blank()) +
+  #   scale_x_continuous(expand = c(0,0)) +
+  #   scale_y_continuous(expand = c(0,0))
+
+  # ggsave(paste0("output/03_RF_Map_Outputs/", vmeoi, "_", metric, "_facet.jpg"), p,
+  #   width = 10, height = 10, dpi = 300)
+
+  p_current <- ggplot() +
     theme_classic() +    
-    tidyterra::geom_spatraster(data = rf_pred_all[[metric]], na.rm = TRUE) +
-    facet_wrap(~ lyr, ncol = 4) +
+    tidyterra::geom_spatraster(data = rf_pred_current_all[[metric]], na.rm = TRUE) +
     ggtheme_metric() +
     geom_contour(data = bathy_noaa, 
       aes(x = x, y = y, z = z, fill = NULL), 
@@ -162,17 +198,17 @@ rf_pred_maps <- lapply(metric_names, function(metric) {
       linewidth = 0.3, 
       alpha = 0.4) +
     # Add area label per facet
-    area_label_layer +
+    # area_label_layer +
     theme(legend.position = "right",
           legend.title = element_blank(),
           axis.title = element_blank()) +
     scale_x_continuous(expand = c(0,0)) +
     scale_y_continuous(expand = c(0,0))
 
-  ggsave(paste0("output/03_RF_Map_Outputs/", vmeoi, "_", metric, "_facet.jpg"), p,
+  ggsave(paste0("output/03_RF_Map_Outputs/", vmeoi, "_current_", metric, ".jpg"), p_current,
     width = 10, height = 10, dpi = 300)
-
 })
+
 
 
 # Comparisons with previous SDM2024 rasters ----

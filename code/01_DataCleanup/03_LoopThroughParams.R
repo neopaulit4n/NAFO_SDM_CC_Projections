@@ -9,7 +9,7 @@ source("code/01_LoadData.R")
 vme_all <- unique(resp_df$VME_Group)
 period_all <- c("P1", "P2", "P3", "P4")
 ssp_all <- unique(cmip_df_period_ssp$ssp)
-period_ssp_all <- apply(expand.grid(period_all, ssp_all), 1, paste, sep = "_", collapse = "_")
+# period_ssp_all <- apply(expand.grid(period_all, ssp_all), 1, paste, sep = "_", collapse = "_")
 
 vmeoi <- "black_corals"
 # poi <- "P1"
@@ -47,8 +47,8 @@ for (vmeoi in "black_corals") {  # vme_all
   cat("Running modelling for VME group:", vmeoi, 
       "\n")
   source("code/03_Modelling.R")
-  source("code/05_Extrapolation.R")
-  loop_seed <- loop_seed + 1      
+  # source("code/05_Extrapolation.R")
+  # loop_seed <- loop_seed + 1      
   
   # Summary outputs by VME group
   var_select_df <- filter(var_select_df, vmeoi == vmeoi) %>%
@@ -58,7 +58,7 @@ for (vmeoi in "black_corals") {  # vme_all
   write_csv(fold_metrics_summary_df, file.path("output/02_Modelling_Outputs", vmeoi, paste0(vmeoi, "_summary_fold_metrics.csv")))
   
   # Maps per VME group
-  source("code/04_Mapping.R")
+  # source("code/04_Mapping.R")
 }
 
 
