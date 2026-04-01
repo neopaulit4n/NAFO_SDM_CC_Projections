@@ -430,14 +430,14 @@ for (i in 1:10) {
     arrange(desc(MeanDecreaseGini))
 
   # Fold partial dependence data
-  cat("  Extracting partial dependence data\n")
-  fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
-    pdp::partial(fold_model[[i]], 
-      pred.var = var,
-      plot = FALSE) %>%
-      mutate(Variable = colnames(.)[1]) %>%
-      rename(value = var)
-  })
+  # cat("  Extracting partial dependence data\n")
+  # fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
+  #   pdp::partial(fold_model[[i]], 
+  #     pred.var = var,
+  #     plot = FALSE) %>%
+  #     mutate(Variable = colnames(.)[1]) %>%
+  #     rename(value = var)
+  # })
   
   cat("  Generating spatial predictions under 'current' conditions\n")
   # Spatial predictions for this fold
@@ -545,25 +545,74 @@ ggsave(filename = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
 
 
 # Extract partial dependence plots for each variable ----
-fold_partial_df <- lapply(fold_partialdep, function(fold) {
-  bind_rows(fold)
-}) %>%
-  bind_rows(.id = "Fold") %>%
-  arrange(Fold, Variable, value) %>%
-  mutate(Fold = as.factor(as.numeric(Fold)),
-         Variable = factor(Variable, levels = rev(levels(fold_var_imp_df$Variable))))
-write.csv(fold_partial_df, file = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
-  paste(vmeoi, "table_rf_PartialDep", sep = "_"), ".csv"), row.names = FALSE)
+# fold_partial_df <- lapply(fold_partialdep, function(fold) {
+#   bind_rows(fold)
+# }) %>%
+#   bind_rows(.id = "Fold") %>%
+#   arrange(Fold, Variable, value) %>%
+#   mutate(Fold = as.factor(as.numeric(Fold)),
+#          Variable = factor(Variable, levels = rev(levels(fold_var_imp_df$Variable))))
+# write.csv(fold_partial_df, file = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
+#   paste(vmeoi, "table_rf_PartialDep", sep = "_"), ".csv"), row.names = FALSE)
 
-ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
-  geom_line() +
-  facet_wrap(~ Variable, scales = "free_x") +
-  theme_bw() +
-  labs(x = "Predictor Value", y = "Partial Dependence")
+# ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
+#   geom_line() +
+#   facet_wrap(~ Variable, scales = "free_x") +
+#   theme_bw() +
+#   labs(x = "Predictor Value", y = "Partial Dependence")
 
-ggsave(filename = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
-   paste(vmeoi, "plot_rf_PartialDep", sep = "_"), ".jpg"),
-  width = 10, height = 8)
+# ggsave(filename = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
+#    paste(vmeoi, "plot_rf_PartialDep", sep = "_"), ".jpg"),
+#   width = 10, height = 8)
+
+# Output non-reclassed/non-thresholded presence probability rasters ----
+
+## Current
+rf_res_presprob_current <- lapply(fold_predictions_spatial_current, `[[`, 2) %>%  # extract Presence layer only
+  terra::rast(.) %>%
+  terra::mean(.)
+
+rf_res_absprob_current <- lapply(fold_predictions_spatial_current, `[[`, 1) %>%  # extract Absence layer only
+  terra::rast(.) %>%
+  terra::mean(.)
+
+terra::writeRaster(rf_res_presprob_current, 
+  paste0("output/02_Modelling_Outputs/",vmeoi,"/", vmeoi, "_rf_res_current_rawPresenceProb.tif"), overwrite = TRUE)
+terra::writeRaster(rf_res_absprob_current, 
+  paste0("output/02_Modelling_Outputs/",vmeoi,"/", vmeoi, "_rf_res_current_rawAbsenceProb.tif"), overwrite = TRUE)
+
+## Future
+rf_res_presprob_future <- map(period_all, function(poi) {
+  map(ssp_all, function(sspoi) {
+    
+    fold_layers <- map(fold_predictions_spatial_future, ~ .x[[poi]][[sspoi]])
+    fold_layers <- lapply(fold_layers, `[[`, 2) %>%
+      terra::rast(.) %>%
+      terra::mean(.)
+
+    terra::writeRaster(fold_layers, 
+      paste0("output/02_Modelling_Outputs/",vmeoi,"/", vmeoi, "_rf_res_future_rawPresenceProb_", poi,"_",sspoi,".tif"), overwrite = TRUE)
+    
+    return(fold_layers)
+  }) %>% set_names(ssp_all)
+}) %>% set_names(period_all) %>%
+  unlist()
+
+rf_res_absprob_future <- map(period_all, function(poi) {
+  map(ssp_all, function(sspoi) {
+    
+    fold_layers <- map(fold_predictions_spatial_future, ~ .x[[poi]][[sspoi]])
+    fold_layers <- lapply(fold_layers, `[[`, 1) %>%
+      terra::rast(.) %>%
+      terra::mean(.)
+
+    terra::writeRaster(fold_layers, 
+      paste0("output/02_Modelling_Outputs/",vmeoi,"/", vmeoi, "_rf_res_future_rawAbsenceProb_", poi,"_",sspoi,".tif"), overwrite = TRUE)
+    
+    return(fold_layers)
+  }) %>% set_names(ssp_all)
+}) %>% set_names(period_all) %>%
+  unlist()
 
 
 # Calculate spatial metrics across folds ----
@@ -642,63 +691,3 @@ for (i in 1:length(rf_pred_foldstack_future)) {
   })
 
 }
-
-
-# Create predictions on all periods + SSP combinations ----
-
-# ## Prepare period+SSP dataframes for predictions
-# ## Transform relevant CMIP variable data to raster layers
-# cmip_layers <- lapply(cmip_vars, function(var) {
-#   transform_cmip_to_raster(data = cmip_df_period_ssp, sspoi = sspoi, poi = "P1", varstat = var)
-# }) %>%
-#   set_names(cmip_vars)
-
-# vme_layers_future <- c(bathy_layers[vme_terrain_vars], compact(cmip_layers[selected_vme_vars])) %>%
-#   terra::rast(.)
-
-# ## Extract data from raster layers to the VME response points
-# # suppressMessages(cmip_pred_df <- lapply(c(bathy_layers, cmip_layers), function(layer) {
-# #   terra::extract(layer, select(resp_df, Start_Long_DD, Start_Lat_DD)) %>%
-# #   select(-ID)
-# # }) %>%
-# #   bind_cols() %>%
-# #   set_names(c(names(bathy_layers), names(cmip_layers))) %>%
-# #   select(all_of(selected_vme_vars))
-# # )
-
-
-# fold_predictions_spatial <- list()
-# fold_predictions_spatial_reclass <- list()
-
-# for (i in 1:10) {
-
-#   # Spatial predictions for this fold
-#   fold_predictions_spatial[[i]] <- terra::predict(
-#     vme_layers_rast,
-#     fold_model[[i]],
-#     type = 'prob',
-#     na.rm = TRUE,
-#     index = 1:2
-#   )
-
-#   # Convert predictions to presence/absence using optimal threshold
-#   fold_predictions_spatial_reclass[[i]] <- terra::classify(
-#     fold_predictions_spatial[[i]][[2]], 
-#     rcl = matrix(c(-Inf, opttsh, 0,
-#                     opttsh, Inf, 1),
-#                     ncol = 3, byrow = TRUE)
-#   )  
-# }
-
-
-
-
-
-# new_predict <- data.frame(
-#   lon = is.numeric(),
-#   lat = is.numeric(),
-#   fold = is.numeric()
-# )
-# new_predict <- predict(fold_model[[1]], cmip_pred_df, type = "prob") %>%
-#   as.data.frame %>%
-#   mutate(fold = 1)

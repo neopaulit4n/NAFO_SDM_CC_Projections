@@ -3,7 +3,6 @@
 
 # Load data ----
 source("code/01_LoadData.R")
-# load("output/02_Modelling_Outputs/black_corals/black_corals.rdata")
 
 # Create table of each combination of iterations to save variable selection results ----
 vme_all <- unique(resp_df$VME_Group)
