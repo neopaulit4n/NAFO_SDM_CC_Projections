@@ -7,7 +7,7 @@ cat("Computing extrapolations...")
 
 # Prepare layers ----
 # Convert selected vme layers to points
-extrap_grid <- terra::as.data.frame(vme_layers_rast, xy = TRUE) %>%
+extrap_grid <- terra::as.data.frame(prediction_grid, xy = TRUE) %>%
   drop_na()
 
 ## Presence and absence (original) ----
@@ -30,8 +30,8 @@ extrapolation_area <- lapply(list(vme_pts_pa, vme_pts_pres), function(dataset) {
     covariate.names = selected_vme_vars,
     prediction.grid = extrap_grid,
     coordinate.system = sp::CRS(SRS_string = "EPSG:4326"))
-})
-
+}) %>%
+  set_names(c("PA","PresenceOnly"))
 
 # Extract extrapolation rasters ----
 extrapolation_rasters <- lapply(extrapolation_area, function(extrap) {
@@ -99,7 +99,9 @@ extrap_exdet_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
       na.value = "transparent"
     ) +
     ggnewscale::new_scale_fill() +
-    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]]) +
+    {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))) > 0) {
+    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]])
+    }} +
     scale_fill_distiller(
       name = "Combinatorial",
       palette = "Greens",
@@ -107,21 +109,17 @@ extrap_exdet_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
       direction = 1,
       na.value = "transparent"
     ) +
-    if (dataset == "PresenceOnly") {
-      theme(
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.title.y = element_blank(),
-        legend.box = "horizontal",
-        legend.position = "inside",
-        legend.position.inside = c(0.75, 0.2),
-        legend.title = element_text(size = 8),
-        legend.text = element_text(size = 8),
-        legend.key.size = unit(5, "mm")
-      )
-    } else {
-      theme(legend.position = "none")
-    }
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.title.y = element_blank(),
+      legend.box = "horizontal",
+      legend.position = "inside",
+      legend.position.inside = c(0.75, 0.2),
+      legend.title = element_text(size = 8),
+      legend.text = element_text(size = 8),
+      legend.key.size = unit(5, "mm")
+    )
 })
 
 # Use patchwork to create combined plot
@@ -141,7 +139,9 @@ extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
     labs(title = ifelse(dataset == "PA", "Presence + Absence", "Presence Only")) +
     tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(extrapolation_rasters_mask))]]) +
     tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(extrapolation_rasters_mask))]]) +
-    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]]) +
+    {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))) > 0) {
+      tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]])
+    }} +
     paletteer::scale_fill_paletteer_d(palette = "colorBlindness::paletteMartin", 
       name = "Covariate", na.value = "transparent", na.translate = FALSE) +
     if (dataset == "PresenceOnly") {
@@ -173,7 +173,7 @@ extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
 # Save both together
 extrap_exdet_maps[[1]] + extrap_exdet_maps[[2]] + extrap_mic_maps[[1]] + extrap_mic_maps[[2]] +
   patchwork::plot_layout(axes = "collect")
-ggsave(paste0("output/03_RF_Map_Outputs/",vmeoi,"_extrapolations_",poi,"_",sspoi,".jpg"), 
+ggsave(paste0("output/04_Extrapolations/",vmeoi,"_",output_name,"_extrapolations.jpg"), 
   width = 10, height = 10, dpi = 300)
 
 
@@ -205,52 +205,52 @@ extrap_analysis <- lapply(list(vme_pts_pa, vme_pts_pres), function(dataset) {
   set_names("PA", "PresenceOnly") %>%
   bind_rows(.id = "InputData")
 
-write_csv(extrap_analysis, paste0("output/02_Modelling_Outputs/",vmeoi,"/",vmeoi,"_",poi,"_",sspoi,"_extrapolation_percentages.csv"))
+write_csv(extrap_analysis, paste0("output/04_Extrapolations/",vmeoi,"/",vmeoi,"_",output_name,"_extrapolation_percentages.csv"))
 
 
 # Overlay univariate extrapolation layer with MaxClass map layer for both PA and PresenceOnly datasets ----
-extrap_uni <- extrapolation_rasters$PA.ExDet.univariate
-extrap_uni <- terra::ifel(!is.na(extrap_uni), 1, NA) %>%
-  terra::extend(rf_pred_all$MaxClass$`1-2.6_P1`) %>%
-  terra::subst(NA, 0)
-extrap_uni_maxclass <- rf_pred_all$MaxClass$`1-2.6_P1` + extrap_uni * 2
-levels(extrap_uni_maxclass) <- data.frame(
-  value = 0:3,
-  label = c(
-    "Absence (not extrapolated)",
-    "Presence (not extrapolated)",
-    "Absence (extrapolated)",
-    "Presence (extrapolated)"
-  )
-)
+# extrap_uni <- extrapolation_rasters$PA.ExDet.univariate
+# extrap_uni <- terra::ifel(!is.na(extrap_uni), 1, NA) %>%
+#   terra::extend(rf_pred_all$MaxClass$`1-2.6_P1`) %>%
+#   terra::subst(NA, 0)
+# extrap_uni_maxclass <- rf_pred_all$MaxClass$`1-2.6_P1` + extrap_uni * 2
+# levels(extrap_uni_maxclass) <- data.frame(
+#   value = 0:3,
+#   label = c(
+#     "Absence (not extrapolated)",
+#     "Presence (not extrapolated)",
+#     "Absence (extrapolated)",
+#     "Presence (extrapolated)"
+#   )
+# )
 
-ggplot() +
-    theme_classic() +    
-    tidyterra::geom_spatraster(data = extrap_uni_maxclass, na.rm = TRUE) +
-    scale_fill_manual(
-      values = c(
-        "Absence (not extrapolated)" = "#ffebcd", 
-        "Presence (not extrapolated)" = "#b87333", 
-        "Absence (extrapolated)" = "coral", 
-        "Presence (extrapolated)" = "coral4"
-      ),
-      na.value = "transparent",
-      na.translate = FALSE
-    ) +
-    # geom_contour(data = bathy_noaa, 
-    #   aes(x = x, y = y, z = z, fill = NULL), 
-    #   breaks = seq(from = -50, to = -5000, by = -250),
-    #   color = "darkgrey", 
-    #   linewidth = 0.3, 
-    #   alpha = 0.4) +
-    theme(legend.position = "right",
-          legend.title = element_blank(),
-          axis.title = element_blank()) +
-    scale_x_continuous(expand = c(0,0)) +
-    scale_y_continuous(expand = c(0,0))
-ggsave(paste0("output/03_RF_Map_Outputs/",vmeoi,"_MaxClass_UnivariateExtrapOverlay_",poi,"_",sspoi,".jpg"), 
-  # plot = extrap_mic_maps,
-  width = 5, height = 5, dpi = 300)
+# ggplot() +
+#     theme_classic() +    
+#     tidyterra::geom_spatraster(data = extrap_uni_maxclass, na.rm = TRUE) +
+#     scale_fill_manual(
+#       values = c(
+#         "Absence (not extrapolated)" = "#ffebcd", 
+#         "Presence (not extrapolated)" = "#b87333", 
+#         "Absence (extrapolated)" = "coral", 
+#         "Presence (extrapolated)" = "coral4"
+#       ),
+#       na.value = "transparent",
+#       na.translate = FALSE
+#     ) +
+#     # geom_contour(data = bathy_noaa, 
+#     #   aes(x = x, y = y, z = z, fill = NULL), 
+#     #   breaks = seq(from = -50, to = -5000, by = -250),
+#     #   color = "darkgrey", 
+#     #   linewidth = 0.3, 
+#     #   alpha = 0.4) +
+#     theme(legend.position = "right",
+#           legend.title = element_blank(),
+#           axis.title = element_blank()) +
+#     scale_x_continuous(expand = c(0,0)) +
+#     scale_y_continuous(expand = c(0,0))
+# ggsave(paste0("output/03_RF_Map_Outputs/",vmeoi,"_MaxClass_UnivariateExtrapOverlay_",poi,"_",sspoi,".jpg"), 
+#   # plot = extrap_mic_maps,
+#   width = 5, height = 5, dpi = 300)
 
 # Load previous SDM2024 extrapolation maps for comparison ----
 
@@ -264,34 +264,3 @@ ggsave(paste0("output/03_RF_Map_Outputs/",vmeoi,"_MaxClass_UnivariateExtrapOverl
 # terra::plot(sdm2024_extcomb)
 # terra::plot(sdm2024_extuni)
 # terra::plot(sdm2024_micana)
-
-# Debugging (NULL combinatorial) ----
-
-# Extract predictor values from samples and prediction grid
-# sample_preds <- vme_pts[, selected_vme_vars]
-# grid_preds   <- extrap_grid[, selected_vme_vars]
-
-# # Calculate covariance matrix from samples
-# cov_matrix <- cov(sample_preds, use = "complete.obs")
-
-# # Check if it's invertible before proceeding
-# det(cov_matrix)        # should not be zero or near-zero
-# kappa(cov_matrix)      # condition number — very large values indicate problems
-
-# # Calculate column means of samples (centre point)
-# sample_means <- colMeans(sample_preds, na.rm = TRUE)
-
-# # Invert the covariance matrix
-# cov_inv <- solve(cov_matrix)
-
-# # Calculate Mahalanobis distance for each prediction grid point
-# maha_distances <- mahalanobis(
-#   x      = grid_preds,
-#   center = sample_means,
-#   cov    = cov_inv,
-#   inverted = TRUE   # tells it cov is already inverted
-# )
-
-# # Inspect results
-# summary(maha_distances)
-# hist(maha_distances, breaks = 50)

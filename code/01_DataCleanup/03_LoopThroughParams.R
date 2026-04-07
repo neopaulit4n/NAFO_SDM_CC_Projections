@@ -60,6 +60,13 @@ for (vmeoi in "black_corals") {  # vme_all
   # source("code/04_Mapping.R")
 }
 
+# Extrapolation outputs loop ----
+for (i in 1:length(unlist(list(baseline = vme_layers_current, unlist(vme_layers_future))))) {
+  prediction_grid <- unlist(list(baseline = vme_layers_current, unlist(vme_layers_future)))[[i]]
+  output_name <- names(unlist(list(baseline = vme_layers_current, unlist(vme_layers_future))))[i]
+  source("code/05_Extrapolation.R")
+}
+
 
 # List the output raster names for each VME ----
 sdm2024_raster_output_df <- data.frame(VME_group = vme_all,
