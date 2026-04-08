@@ -18,7 +18,7 @@ bathy_layers <- list.files(path = "data/raw/BNAM_Data_From_Cam/Bathymetry_Terrai
 names(bathy_layers) <- gsub("GEBCO2024_FS005_StudyArea_","",names(bathy_layers))
 names(bathy_layers)[1] <- "FS005"
 
-# ## Load BNAM layers (will use these to form predictions, decide which variables to select) ----
+## Load BNAM layers (will use these to form predictions, decide which variables to select) ----
 bnam_layers <- list.files("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint", 
                           pattern = "\\.tif$", full.names = TRUE) %>%
   set_names(., nm = basename(.) %>% tools::file_path_sans_ext()) %>%
@@ -67,15 +67,42 @@ bnam_layers <- list.files("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint
 cmip_df <- readRDS("data/processed/ens_df.rds") %>%
   pivot_wider(names_from = season, values_from = mldavg, names_glue = {"{.value}_{season}"}) %>%
   mutate(mldavg = coalesce(mldavg_W,mldavg_F,mldavg_Su,mldavg_Sp)) %>%
-  select(-dep)  # will use terrain variable FS005 for depth instead
+  select(-dep) %>%  # will use terrain variable FS005 for depth instead
+  rename(
+    BS = sobavg,
+    SSS = sosavg,
+    BT = tobavg,
+    SST = tosavg,
+    BCS = wobavg,
+    BStr = bstress,
+    MLD = mldavg,
+    MLD_Su = mldavg_Su,
+    MLD_F = mldavg_F,
+    MLD_W = mldavg_W,
+    MLD_Sp = mldavg_Sp
+  )
   
 # Load selected terrain static variables ----
 terrain_topvars <- read_csv("data/processed/VarImp_2024_2025_SCR_02_TopStaticVarsByVME.csv", show_col_types = FALSE)
 
 # Create baseline "current" dataframe that will build the models used for predictions ----
 current_df <- read_csv("data/cleaned/cmip_ens_1993_2014_df.csv", show_col_types = FALSE) %>%
+  rename(
+    BS = sobavg,
+    SSS = sosavg,
+    BT = tobavg,
+    SST = tosavg,
+    BCS = wobavg,
+    BStr = bstress,
+    MLD = mldavg,
+    MLD_Su = mldavg_Su,
+    MLD_F = mldavg_F,
+    MLD_W = mldavg_W,
+    MLD_Sp = mldavg_Sp
+  ) %>%
+  select(-month) %>%
   group_by(lon, lat) %>%
-  summarise(across(tosavg:bstress, 
+  summarise(across(SST:BStr, 
     list(
       mean = ~mean(.x, na.rm = TRUE),
       min = ~min(.x, na.rm = TRUE),
@@ -89,11 +116,14 @@ current_df <- read_csv("data/cleaned/cmip_ens_1993_2014_df.csv", show_col_types 
 cmip_df_period_ssp <- cmip_df %>%
   filter(!is.na(period)) %>%
   group_by(lon, lat, period, ssp) %>%
-  summarise(across(sobavg:mldavg, list(mean = ~mean(.x, na.rm = TRUE),
-                                       min = ~min(.x, na.rm = TRUE),
-                                       max = ~max(.x, na.rm = TRUE), 
-                                       range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)),
-                   .names = "{col}_{fn}")) %>%
+  summarise(across(BS:MLD, 
+    list(
+      mean = ~mean(.x, na.rm = TRUE),
+      min = ~min(.x, na.rm = TRUE),
+      max = ~max(.x, na.rm = TRUE), 
+      range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)
+    ),
+    .names = "{col}_{fn}")) %>%
   ungroup()
 
 # Get study area extent and create spatial mask ----
