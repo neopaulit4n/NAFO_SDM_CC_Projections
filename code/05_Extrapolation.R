@@ -1,7 +1,5 @@
 
 # Extrapolations with dsmextra
-
-cat("Computing extrapolations...")
 # samples = presence data points with associated covariate values (known) - points
 # prediction.grid = grid of covariate values across the study area for which presence is to be predicted (unknown) - points
 
@@ -110,9 +108,9 @@ extrap_exdet_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
       na.value = "transparent"
     ) +
     theme(
-      axis.text.y = element_blank(),
-      axis.ticks.y = element_blank(),
-      axis.title.y = element_blank(),
+      # axis.text.y = element_blank(),
+      # axis.ticks.y = element_blank(),
+      # axis.title.y = element_blank(),
       legend.box = "horizontal",
       legend.position = "inside",
       legend.position.inside = c(0.75, 0.2),
@@ -144,21 +142,21 @@ extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
     }} +
     paletteer::scale_fill_paletteer_d(palette = "colorBlindness::paletteMartin", 
       name = "Covariate", na.value = "transparent", na.translate = FALSE) +
-    if (dataset == "PresenceOnly") {
-      theme(
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.title.y = element_blank(),
-        legend.position = "inside",
-        legend.position.inside = c(0.75, 0.27),
-        legend.box.just = c("left", "top"),
-        legend.title = element_text(size = 8),
-        legend.text = element_text(size = 8),
-        legend.key.size = unit(5, "mm")
+    # if (dataset == "PresenceOnly") {
+    theme(
+      # axis.text.y = element_blank(),
+      # axis.ticks.y = element_blank(),
+      # axis.title.y = element_blank(),
+      legend.position = "inside",
+      legend.position.inside = c(0.75, 0.27),
+      legend.box.just = c("left", "top"),
+      legend.title = element_text(size = 8),
+      legend.text = element_text(size = 8),
+      legend.key.size = unit(5, "mm")
       )
-    } else {
-      theme(legend.position = "none")
-    }
+    # } else {
+      # theme(legend.position = "none")
+    # }
 })
 
 # Use patchwork to create combined plot
@@ -173,7 +171,7 @@ extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
 # Save both together
 extrap_exdet_maps[[1]] + extrap_exdet_maps[[2]] + extrap_mic_maps[[1]] + extrap_mic_maps[[2]] +
   patchwork::plot_layout(axes = "collect")
-ggsave(paste0("output/04_Extrapolations/",vmeoi,"_",output_name,"_extrapolations.jpg"), 
+ggsave(paste0(output_folder,"/",vmeoi,"_extrapolations_",output_name,".jpg"), 
   width = 10, height = 10, dpi = 300)
 
 
@@ -205,7 +203,7 @@ extrap_analysis <- lapply(list(vme_pts_pa, vme_pts_pres), function(dataset) {
   set_names("PA", "PresenceOnly") %>%
   bind_rows(.id = "InputData")
 
-write_csv(extrap_analysis, paste0("output/04_Extrapolations/",vmeoi,"/",vmeoi,"_",output_name,"_extrapolation_percentages.csv"))
+write_csv(extrap_analysis, paste0(output_folder,"/",vmeoi,"_extrapolation_percentages_",output_name,".csv"))
 
 
 # Overlay univariate extrapolation layer with MaxClass map layer for both PA and PresenceOnly datasets ----

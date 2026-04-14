@@ -60,8 +60,8 @@ bathy_noaa <- readRDS("data/raw/Mapping_Layers/bathy_noaa.rds")
 metric_names <- c("MaxClass", "MaxClassF", "MaxClassAvgProb", "CombConf", "CVSum", "rawPresenceProb", "rawAbsenceProb")
 
 ## Read in rasters ----
-rf_pred_future_all <- lapply(metric_names, function(metric) {
-  metric_pred_names <- list.files(paste0("output/02_Modelling_Outputs/", vmeoi), pattern = paste0("rf_res_future_", metric, "_"), full.names = TRUE)
+rf_pred_proj_all <- lapply(metric_names, function(metric) {
+  metric_pred_names <- list.files(paste0(output_folder, "/rasters"), pattern = paste0("rf_res_proj_", metric, "_"), full.names = TRUE)
   metric_preds <- terra::rast(metric_pred_names)
   names(metric_preds) <- paste0(str_extract(metric_pred_names, "1-2.6|2-4.5|3-7.0|5-8.5"), "_", str_extract(metric_pred_names, "P[1-4]"))
   metric_preds <- metric_preds[[order(names(metric_preds))]]  # reorder layers by period (P1-P4) within each SSP for facetting
@@ -75,8 +75,8 @@ rf_pred_future_all <- lapply(metric_names, function(metric) {
 }) %>%
   set_names(metric_names)
 
-rf_pred_current_all <- lapply(metric_names, function(metric) {
-  metric_pred_names <- list.files(paste0("output/02_Modelling_Outputs/", vmeoi), pattern = paste0("rf_res_current_", metric, "\\.tif"), full.names = TRUE)
+rf_pred_baseline_all <- lapply(metric_names, function(metric) {
+  metric_pred_names <- list.files(paste0(output_folder, "/rasters"), pattern = paste0("rf_res_baseline_", metric, "\\.tif"), full.names = TRUE)
   metric_preds <- terra::rast(metric_pred_names)
   
   # Factorise MaxClass rasters for plotting
@@ -89,26 +89,26 @@ rf_pred_current_all <- lapply(metric_names, function(metric) {
   set_names(metric_names)
 
 ## Calculate area of predicted presence (MaxClass) ----
-compute_presence_areas <- function(metric) {
-  rast_stack <- rf_pred_all[[metric]]
+# compute_presence_areas <- function(metric) {
+#   rast_stack <- rf_pred_all[[metric]]
   
-  layer_names <- names(rast_stack)
+#   layer_names <- names(rast_stack)
   
-  areas <- sapply(layer_names, function(lyr_name) {
-    r_layer <- rast_stack[[lyr_name]]
-    # Subset raster to presence cells only (mask out absence)
-    presence <- terra::ifel(r_layer == 1, r_layer, NA)
-    # Calculate area of each cell in km²
-    area_rast <- terra::cellSize(presence, unit = "km", mask = TRUE)
-    # Sum all presence cell areas to get total area in km²
-    terra::global(area_rast, "sum", na.rm = TRUE)$sum
-  })
+#   areas <- sapply(layer_names, function(lyr_name) {
+#     r_layer <- rast_stack[[lyr_name]]
+#     # Subset raster to presence cells only (mask out absence)
+#     presence <- terra::ifel(r_layer == 1, r_layer, NA)
+#     # Calculate area of each cell in km²
+#     area_rast <- terra::cellSize(presence, unit = "km", mask = TRUE)
+#     # Sum all presence cell areas to get total area in km²
+#     terra::global(area_rast, "sum", na.rm = TRUE)$sum
+#   })
   
-  data.frame(
-    lyr = layer_names,
-    label = paste0(format(round(areas, 0), big.mark = ","), " km²")
-  )
-}
+#   data.frame(
+#     lyr = layer_names,
+#     label = paste0(format(round(areas, 0), big.mark = ","), " km²")
+#   )
+# }
 
 
 ## Generate plots ----
@@ -157,7 +157,7 @@ rf_pred_maps <- lapply(metric_names, function(metric) {
   # Create plot
   p <- ggplot() +
     theme_classic() +    
-    tidyterra::geom_spatraster(data = rf_pred_future_all[[metric]], na.rm = TRUE) +
+    tidyterra::geom_spatraster(data = rf_pred_proj_all[[metric]], na.rm = TRUE) +
     facet_wrap(~ lyr, ncol = 4) +
     ggtheme_metric() +
     geom_contour(data = bathy_noaa, 
@@ -174,12 +174,12 @@ rf_pred_maps <- lapply(metric_names, function(metric) {
     scale_x_continuous(expand = c(0,0)) +
     scale_y_continuous(expand = c(0,0))
 
-  ggsave(paste0("output/03_RF_Map_Outputs/", vmeoi, "_future_", metric, "_facet.jpg"), p,
+  ggsave(paste0(output_folder,"/",vmeoi,"_proj_",metric,"_facet.jpg"), p,
     width = 10, height = 10, dpi = 300)
 
-  p_current <- ggplot() +
+  p_baseline <- ggplot() +
     theme_classic() +    
-    tidyterra::geom_spatraster(data = rf_pred_current_all[[metric]], na.rm = TRUE) +
+    tidyterra::geom_spatraster(data = rf_pred_baseline_all[[metric]], na.rm = TRUE) +
     ggtheme_metric() +
     geom_contour(data = bathy_noaa, 
       aes(x = x, y = y, z = z, fill = NULL), 
@@ -195,7 +195,7 @@ rf_pred_maps <- lapply(metric_names, function(metric) {
     scale_x_continuous(expand = c(0,0)) +
     scale_y_continuous(expand = c(0,0))
 
-  ggsave(paste0("output/03_RF_Map_Outputs/", vmeoi, "_current_", metric, ".jpg"), p_current,
+  ggsave(paste0(output_folder,"/",vmeoi,"_baseline_",metric,".jpg"), p_baseline,
     width = 10, height = 10, dpi = 300)
 })
 

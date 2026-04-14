@@ -4,7 +4,7 @@ cat("Loading data...\n")
 
 ## Transform relevant CMIP variable data to raster layers
 cmip_layers <- lapply(cmip_vars, function(var) {
-  transform_cmip_to_raster(data = current_df, varstat = var)
+  transform_cmip_to_raster(data = baseline_df, varstat = var)
 }) %>%
   set_names(cmip_vars)
 
@@ -28,7 +28,6 @@ cmip_comb_df <- bind_cols(resp_df, cmip_pred_df) %>%
 # 3) Remove correlated variables based on importance ranking
 # 4) VIF remaining variables
 
-
 ## Prepare VME group dataframe ----
 vme_terrain_vars <- filter(terrain_topvars, VME_Group == vmeoi) %>%
   pull(variable)
@@ -48,9 +47,6 @@ rf_prelim <- randomForest::randomForest(formula = rf_prelim_form,
                                         data = vme_df,
                                         importance = TRUE)
 
-# saveRDS(rf_model, file = paste0("data/processed/rf_prelim_",vmeoi,".rds"))
-# rf_prelim <- readRDS(paste0("data/processed/rf_prelim_",vmeoi,".rds"))
-
 ## Extract variable importance metrics ----
 cat("Extracting preliminary RF model variable importance metrics...\n")
 rf_prelim_imp <- as.data.frame(randomForest::importance(rf_prelim)) %>%
@@ -68,8 +64,7 @@ plot_rf_prelim_var_imp <- ggplot(rf_prelim_imp, aes(x = reorder(Variable, MeanDe
         axis.text.y = element_text(size = 6))
 
 ggsave(plot_rf_prelim_var_imp, 
-  filename = paste0("output/02_Modelling_Outputs/",vmeoi,"/",
-    vmeoi, "_plot_rf_prelim_var_imp.jpg"), 
+  filename = paste0(output_folder,"/",vmeoi, "_plot_rf_prelim_var_imp.jpg"), 
   width = 6, height = 4)
 
 ## Plot partial dependence plots ----
@@ -92,8 +87,7 @@ cor_df <- cor(vme_df[, vme_vars, drop = FALSE],
   pivot_longer(everything(), names_to = "var2", values_to = "cor") %>%
   mutate(var1 = rep(vme_vars, each = length(vme_vars))) %>%
   select(var1, var2, cor)
-# write.csv(cor_df, file = paste0("output/02_Modelling_Outputs/",
-#   paste(vmeoi, "table_cor_AllCMIPVars", sep = "_"), ".csv"), row.names = FALSE)
+write.csv(cor_df, file = paste0(output_folder,"/",vmeoi,"_table_cor_baseline_AllCMIPVars.csv"), row.names = FALSE)
 
 plot_cor_allvars <- ggplot(data = cor_df, aes(x = var1, y = var2, fill = cor)) +
   geom_tile(colour = "black") +
@@ -106,11 +100,10 @@ plot_cor_allvars <- ggplot(data = cor_df, aes(x = var1, y = var2, fill = cor)) +
         axis.text = element_text(size = 6),
         axis.line = element_blank(),
         axis.title = element_blank()) +
-  labs(title = paste("Correlation Matrix for VME Group:", vmeoi), fill = "Correlation")
+  labs(fill = "Correlation")
 
 ggsave(plot_cor_allvars,
-  filename = paste0("output/02_Modelling_Outputs/",vmeoi,"/",
-    vmeoi, "_plot_cor_AllCMIPVars.jpg"), 
+  filename = paste0(output_folder,"/",vmeoi,"_plot_cor_AllCMIPVars.jpg"), 
   width = 8, height = 6)
 
 
@@ -257,6 +250,9 @@ select_vme_vars <- function(pred_var_df, vmeoi, cor_threshold = 0.7, verbose = F
 vme_var_selection <- select_vme_vars(vme_df[,-1], vmeoi = vmeoi, cor_threshold = 0.7, verbose = FALSE)
 selected_vme_vars <- vme_var_selection$selected_vars
 
+# Remove BT_min to test extrapolation and models without it (biggest cause of extrapolation)
+selected_vme_vars <- selected_vme_vars[!selected_vme_vars %in% "BT_min"]
+
 #### Update VIF table with this iteration's results
 vif_df_i <- data.frame(
   vmeoi = vmeoi, 
@@ -287,46 +283,18 @@ vif_df <- rbind(vif_df, vif_df_i)
 vme_df <- vme_df %>%
   select(all_of(c("VME_P_A", selected_vme_vars)))
 
-# Correlation matrix for selected variables ----
-# cor_df <- cor(vme_df[, selected_vme_vars, drop = FALSE], 
-#                   method = "spearman",
-#                   use = "pairwise.complete.obs") %>%
-#   as.data.frame %>%
-#   pivot_longer(everything(), names_to = "var2", values_to = "cor") %>%
-#   mutate(var1 = rep(selected_vme_vars, each = length(selected_vme_vars))) %>%
-#   select(var1, var2, cor)
-# write.csv(cor_df, file = paste0("output/02_StepByStepOutputs/",
-#   paste(vmeoi, poi, sspoi, "table_cor_SelCMIPVars", sep = "_"), ".csv"), row.names = FALSE)
-
-# plot_cor_selvars <- ggplot(data = cor_df, aes(x = var1, y = var2, fill = cor)) +
-#   geom_tile(colour = "black") +
-#   geom_text(aes(label = ifelse(cor > 0.7 | cor < -0.7, "*", "")), size = 3) +
-#   scale_fill_gradient2(low = "blue", mid = "white", high = "red", limit = c(-1,1), midpoint = 0) +
-#   scale_x_discrete(expand = c(0,0)) +
-#   scale_y_discrete(expand = c(0,0)) +
-#   theme_classic() +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-#         axis.line = element_blank(),
-#         axis.title = element_blank()) +
-#   labs(title = paste("Correlation Matrix for VME Group:", vmeoi), fill = "Correlation")
-
-# ggsave(plot_cor_selvars,
-#   filename = paste0("output/02_StepByStepOutputs/", 
-#     paste(vmeoi, poi, sspoi, "plot_cor_SelCMIPVars", subsamp_title, ".jpg", sep = "_")), 
-#   width = 8, height = 6)
-
 # Create table of variable selection results for this iteration ----
 selected_cmip_vars <- selected_vme_vars[selected_vme_vars %in% names(cmip_layers)]
 var_select_df[var_select_df$vmeoi == vmeoi, selected_cmip_vars] <- 1
 var_select_df[var_select_df$vmeoi == vmeoi, setdiff(names(cmip_layers), selected_cmip_vars)] <- 0
-
+# selected_vme_vars <- c(vme_terrain_vars, cmip_vars)  # test without variable selection
 
 # Prepare variable layer rasters for spatial predictions ----
 cat("Preparing variable raster layers for spatial predictions...\n")
-vme_layers_current <- c(bathy_layers[vme_terrain_vars], compact(cmip_layers[selected_vme_vars])) %>%
+vme_layers_baseline <- c(bathy_layers[vme_terrain_vars], compact(cmip_layers[selected_vme_vars])) %>%
   terra::rast(.)
 
-cmip_layers_future <- lapply(period_all, function(poi) {
+cmip_layers_proj <- lapply(period_all, function(poi) {
   lapply(ssp_all, function(sspoi) {
     lapply(cmip_vars, function(var) {
       transform_cmip_to_raster(data = cmip_df_period_ssp, sspoi = sspoi, poi = poi, varstat = var)
@@ -337,15 +305,14 @@ cmip_layers_future <- lapply(period_all, function(poi) {
 }) %>%
   set_names(period_all)
 
-vme_layers_future <- lapply(period_all, function(poi) {
+vme_layers_proj <- lapply(period_all, function(poi) {
   lapply(ssp_all, function(sspoi) {
-    c(bathy_layers[vme_terrain_vars], compact(cmip_layers_future[[poi]][[sspoi]][selected_vme_vars])) %>%
+    c(bathy_layers[vme_terrain_vars], compact(cmip_layers_proj[[poi]][[sspoi]][selected_vme_vars])) %>%
       terra::rast(.)     
   }) %>%
     set_names(ssp_all)
 }) %>%
   set_names(period_all)
-
 
 # Model building ----
 
@@ -356,10 +323,10 @@ folds <- caret::createFolds(vme_df$VME_P_A, k = 10, returnTrain = TRUE)
 
 # Initialise storage for fold metrics
 fold_metrics_list <- list()
-fold_predictions_spatial_current <- list()
-fold_predictions_spatial_current_reclass <- list()
-fold_predictions_spatial_future <- list()
-fold_predictions_spatial_future_reclass <- list()
+fold_predictions_spatial_baseline <- list()
+fold_predictions_spatial_baseline_reclass <- list()
+fold_predictions_spatial_proj <- list()
+fold_predictions_spatial_proj_reclass <- list()
 fold_var_imp <- list()
 fold_partialdep <- list()
 fold_model <- list()
@@ -430,19 +397,19 @@ for (i in 1:10) {
     arrange(desc(MeanDecreaseGini))
 
   # Fold partial dependence data
-  # cat("  Extracting partial dependence data\n")
-  # fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
-  #   pdp::partial(fold_model[[i]], 
-  #     pred.var = var,
-  #     plot = FALSE) %>%
-  #     mutate(Variable = colnames(.)[1]) %>%
-  #     rename(value = var)
-  # })
+  cat("  Extracting partial dependence data\n")
+  fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
+    pdp::partial(fold_model[[i]], 
+      pred.var = var,
+      plot = FALSE) %>%
+      mutate(Variable = colnames(.)[1]) %>%
+      rename(value = var)
+  })
   
-  cat("  Generating spatial predictions under 'current' conditions\n")
+  cat("  Generating spatial predictions under baseline conditions\n")
   # Spatial predictions for this fold
-  fold_predictions_spatial_current[[i]] <- terra::predict(
-    vme_layers_current,
+  fold_predictions_spatial_baseline[[i]] <- terra::predict(
+    vme_layers_baseline,
     fold_model[[i]],
     type = 'prob',
     na.rm = TRUE,
@@ -450,19 +417,19 @@ for (i in 1:10) {
   )
   
   # Convert predictions to presence/absence using optimal threshold
-  fold_predictions_spatial_current_reclass[[i]] <- terra::classify(
-    fold_predictions_spatial_current[[i]][[2]], 
+  fold_predictions_spatial_baseline_reclass[[i]] <- terra::classify(
+    fold_predictions_spatial_baseline[[i]][[2]], 
     rcl = matrix(c(-Inf, opttsh, 0,
                     opttsh, Inf, 1), 
                     ncol = 3, byrow = TRUE)
   )
 
-  cat("  Generating spatial predictions under future scenarios\n")
+  cat("  Generating spatial predictions under projected scenarios\n")
   # Spatial predictions for this fold
-  fold_predictions_spatial_future[[i]] <- lapply(period_all, function(poi) {
+  fold_predictions_spatial_proj[[i]] <- lapply(period_all, function(poi) {
     lapply(ssp_all, function(sspoi) {
       terra::predict(
-        vme_layers_future[[poi]][[sspoi]],
+        vme_layers_proj[[poi]][[sspoi]],
         fold_model[[i]],
         type = 'prob',
         na.rm = TRUE,
@@ -474,10 +441,10 @@ for (i in 1:10) {
     set_names(period_all)
   
   # Convert predictions to presence/absence using optimal threshold
-  fold_predictions_spatial_future_reclass[[i]] <- lapply(period_all, function(poi) {
+  fold_predictions_spatial_proj_reclass[[i]] <- lapply(period_all, function(poi) {
     lapply(ssp_all, function(sspoi) {
       terra::classify(
-        fold_predictions_spatial_future[[i]][[poi]][[sspoi]][[2]], 
+        fold_predictions_spatial_proj[[i]][[poi]][[sspoi]][[2]], 
         rcl = matrix(c(-Inf, opttsh, 0,
                         opttsh, Inf, 1), 
                         ncol = 3, byrow = TRUE)
@@ -507,13 +474,13 @@ fold_metrics_summary_df_i <- fold_metrics_df_i %>%
 fold_metrics_summary_df <- bind_rows(fold_metrics_summary_df, fold_metrics_summary_df_i)
 
 # Create spatial predictions stack
-rf_pred_foldstack_current <- terra::rast(fold_predictions_spatial_current_reclass)
-terra::writeRaster(rf_pred_foldstack_current, filename = paste0("output/02_Modelling_Outputs/", vmeoi, "/",
-  paste(vmeoi, "rf_spatial_predictions_current", sep = "_"), ".tif"), overwrite = TRUE)
+rf_pred_foldstack_baseline <- terra::rast(fold_predictions_spatial_baseline_reclass)
+# terra::writeRaster(rf_pred_foldstack_baseline, 
+#   filename = paste0(main_output_folder, vmeoi, "/", vmeoi, "_rf_spatial_predictions_baseline.tif"), overwrite = TRUE)
 
-rf_pred_foldstack_future <- map(period_all, function(poi) {
+rf_pred_foldstack_proj <- map(period_all, function(poi) {
   map(ssp_all, function(sspoi) {
-    fold_layers <- map(fold_predictions_spatial_future_reclass, ~ .x[[poi]][[sspoi]])
+    fold_layers <- map(fold_predictions_spatial_proj_reclass, ~ .x[[poi]][[sspoi]])
     terra::rast(fold_layers)
   }) %>% set_names(ssp_all)
 }) %>% set_names(period_all) %>%
@@ -531,83 +498,80 @@ fold_var_imp_df <- lapply(fold_var_imp, function(fold) {
   bind_rows(.id = "Fold") %>%
   mutate(Variable = fct_reorder(Variable, MeanDecreaseGini, .fun = mean)) %>%
   ungroup()
-write.csv(fold_var_imp_df, file = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
-  paste(vmeoi, "table_rf_VarImp", sep = "_"), ".csv"), row.names = FALSE)
+write.csv(fold_var_imp_df, 
+  file = paste0(output_folder,"/",vmeoi,"_table_rf_VarImp.csv"), row.names = FALSE)
 
 ggplot(fold_var_imp_df, aes(y = Variable, x = MeanDecreaseGini)) +
   geom_boxplot() +
   theme_bw() +
   labs(y = "Predictor Variable", x = "Mean Decrease in Gini Index")
 
-ggsave(filename = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
-  paste(vmeoi, "plot_rf_VarImp", sep = "_"), ".jpg"), 
+ggsave(filename = paste0(output_folder,"/",vmeoi,"_plot_rf_VarImp.jpg"), 
   width = 6, height = 4)
 
 
 # Extract partial dependence plots for each variable ----
-# fold_partial_df <- lapply(fold_partialdep, function(fold) {
-#   bind_rows(fold)
-# }) %>%
-#   bind_rows(.id = "Fold") %>%
-#   arrange(Fold, Variable, value) %>%
-#   mutate(Fold = as.factor(as.numeric(Fold)),
-#          Variable = factor(Variable, levels = rev(levels(fold_var_imp_df$Variable))))
-# write.csv(fold_partial_df, file = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
-#   paste(vmeoi, "table_rf_PartialDep", sep = "_"), ".csv"), row.names = FALSE)
+fold_partial_df <- lapply(fold_partialdep, function(fold) {
+  bind_rows(fold)
+}) %>%
+  bind_rows(.id = "Fold") %>%
+  arrange(Fold, Variable, value) %>%
+  mutate(Fold = as.factor(as.numeric(Fold)),
+         Variable = factor(Variable, levels = rev(levels(fold_var_imp_df$Variable))))
+write.csv(fold_partial_df, file = paste0(output_folder,"/",vmeoi,"_table_rf_PartialDep.csv"), row.names = FALSE)
 
-# ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
-#   geom_line() +
-#   facet_wrap(~ Variable, scales = "free_x") +
-#   theme_bw() +
-#   labs(x = "Predictor Value", y = "Partial Dependence")
+ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
+  geom_line() +
+  facet_wrap(~ Variable, scales = "free_x") +
+  theme_bw() +
+  labs(x = "Predictor Value", y = "Partial Dependence")
 
-# ggsave(filename = paste0("output/02_Modelling_Outputs/",vmeoi, "/",
-#    paste(vmeoi, "plot_rf_PartialDep", sep = "_"), ".jpg"),
-#   width = 10, height = 8)
+ggsave(filename = paste0(output_folder,"/",vmeoi,"_plot_rf_PartialDep.jpg"),
+  width = 10, height = 8)
 
 # Output non-reclassed/non-thresholded presence probability rasters ----
 
-## Current
-rf_res_presprob_current <- lapply(fold_predictions_spatial_current, `[[`, 2) %>%  # extract Presence layer only
+## Baseline
+rf_res_presprob_baseline <- lapply(fold_predictions_spatial_baseline, `[[`, 2) %>%  # extract Presence layer only
   terra::rast(.) %>%
   terra::mean(.)
 
-rf_res_absprob_current <- lapply(fold_predictions_spatial_current, `[[`, 1) %>%  # extract Absence layer only
+rf_res_absprob_baseline <- lapply(fold_predictions_spatial_baseline, `[[`, 1) %>%  # extract Absence layer only
   terra::rast(.) %>%
   terra::mean(.)
 
-terra::writeRaster(rf_res_presprob_current, 
-  paste0("output/02_Modelling_Outputs/",vmeoi,"/", vmeoi, "_rf_res_current_rawPresenceProb.tif"), overwrite = TRUE)
-terra::writeRaster(rf_res_absprob_current, 
-  paste0("output/02_Modelling_Outputs/",vmeoi,"/", vmeoi, "_rf_res_current_rawAbsenceProb.tif"), overwrite = TRUE)
+terra::writeRaster(rf_res_presprob_baseline, 
+  paste0(output_folder,"/rasters/",vmeoi,"_rf_res_baseline_rawPresenceProb.tif"), overwrite = TRUE)
+terra::writeRaster(rf_res_absprob_baseline, 
+  paste0(output_folder,"/rasters/",vmeoi,"_rf_res_baseline_rawAbsenceProb.tif"), overwrite = TRUE)
 
-## Future
-rf_res_presprob_future <- map(period_all, function(poi) {
+## Projections
+rf_res_presprob_proj <- map(period_all, function(poi) {
   map(ssp_all, function(sspoi) {
     
-    fold_layers <- map(fold_predictions_spatial_future, ~ .x[[poi]][[sspoi]])
+    fold_layers <- map(fold_predictions_spatial_proj, ~ .x[[poi]][[sspoi]])
     fold_layers <- lapply(fold_layers, `[[`, 2) %>%
       terra::rast(.) %>%
       terra::mean(.)
 
     terra::writeRaster(fold_layers, 
-      paste0("output/02_Modelling_Outputs/",vmeoi,"/", vmeoi, "_rf_res_future_rawPresenceProb_", poi,"_",sspoi,".tif"), overwrite = TRUE)
+      paste0(output_folder,"/rasters/",vmeoi,"_rf_res_proj_rawPresenceProb_",poi,"_",sspoi,".tif"), overwrite = TRUE)
     
     return(fold_layers)
   }) %>% set_names(ssp_all)
 }) %>% set_names(period_all) %>%
   unlist()
 
-rf_res_absprob_future <- map(period_all, function(poi) {
+rf_res_absprob_proj <- map(period_all, function(poi) {
   map(ssp_all, function(sspoi) {
     
-    fold_layers <- map(fold_predictions_spatial_future, ~ .x[[poi]][[sspoi]])
+    fold_layers <- map(fold_predictions_spatial_proj, ~ .x[[poi]][[sspoi]])
     fold_layers <- lapply(fold_layers, `[[`, 1) %>%
       terra::rast(.) %>%
       terra::mean(.)
 
     terra::writeRaster(fold_layers, 
-      paste0("output/02_Modelling_Outputs/",vmeoi,"/", vmeoi, "_rf_res_future_rawAbsenceProb_", poi,"_",sspoi,".tif"), overwrite = TRUE)
+      paste0(output_folder,"/rasters/",vmeoi,"_rf_res_proj_rawAbsenceProb_",poi,"_",sspoi,".tif"), overwrite = TRUE)
     
     return(fold_layers)
   }) %>% set_names(ssp_all)
@@ -617,77 +581,75 @@ rf_res_absprob_future <- map(period_all, function(poi) {
 
 # Calculate spatial metrics across folds ----
 
-## Current ----
+## Baseline ----
 ### Most frequent class (0/1)
-rf_res_current_MaxClass <- terra::modal(rf_pred_foldstack_current, freq = FALSE)
+rf_res_baseline_MaxClass <- terra::modal(rf_pred_foldstack_baseline, freq = FALSE)
 
 ### Frequency of most frequent class (fraction of runs)
 # rf_res_MaxClassF <- terra::modal(rf_pred_foldstack, freq = TRUE) / 10  # old method - doesn't work
-rf_res_current_freq_count <- sum(rf_pred_foldstack_current == rf_res_current_MaxClass, na.rm = TRUE)
-rf_res_current_MaxClassF <- rf_res_current_freq_count / 10
+rf_res_baseline_freq_count <- sum(rf_pred_foldstack_baseline == rf_res_baseline_MaxClass, na.rm = TRUE)
+rf_res_baseline_MaxClassF <- rf_res_baseline_freq_count / 10
 
 ### Average probability of classes
-rf_res_current_AvgProb <- Reduce("+", fold_predictions_spatial_current) / 10
+rf_res_baseline_AvgProb <- Reduce("+", fold_predictions_spatial_baseline) / 10
 
 ### Average probability of maximum frequency class
-rf_res_current_MaxClassAvgProb <- terra::selectRange(rf_res_current_AvgProb, rf_res_current_MaxClass + 1)
+rf_res_baseline_MaxClassAvgProb <- terra::selectRange(rf_res_baseline_AvgProb, rf_res_baseline_MaxClass + 1)
 
 ### Combined confidence metric
-rf_res_current_CombConf <- rf_res_current_MaxClassF * rf_res_current_MaxClassAvgProb
+rf_res_baseline_CombConf <- rf_res_baseline_MaxClassF * rf_res_baseline_MaxClassAvgProb
 
 ### Number of models predicting presence
-rf_res_current_CVSum <- terra::app(rf_pred_foldstack_current, sum, na.rm = TRUE)
+rf_res_baseline_CVSum <- terra::app(rf_pred_foldstack_baseline, sum, na.rm = TRUE)
 
-### Save current rasters for each metric ----
-rm(rf_res_current_freq_count, rf_res_current_AvgProb)
-lapply(ls(pattern = "rf_res_current"), function(res_name) {
+### Save baseline rasters for each metric ----
+rm(rf_res_baseline_freq_count, rf_res_baseline_AvgProb)
+lapply(ls(pattern = "rf_res_baseline"), function(res_name) {
   res_raster <- get(res_name)
-  terra::writeRaster(res_raster, filename = paste0("output/02_Modelling_Outputs/", vmeoi, "/",
-    paste(vmeoi, res_name, sep = "_"), ".tif"), overwrite = TRUE)
+  terra::writeRaster(res_raster, 
+    filename = paste0(output_folder,"/rasters/",vmeoi,"_",res_name,".tif"), overwrite = TRUE)
 })
 
-
-## Future projections ----
-
-for (i in 1:length(rf_pred_foldstack_future)) {
-  comb_name <- names(rf_pred_foldstack_future)[[i]]
+## Projections ----
+for (i in 1:length(rf_pred_foldstack_proj)) {
+  comb_name <- names(rf_pred_foldstack_proj)[[i]]
 
   ### Most frequent class (0/1)
-  rf_res_future_MaxClass <- terra::modal(rf_pred_foldstack_future[[i]], freq = FALSE)
+  rf_res_proj_MaxClass <- terra::modal(rf_pred_foldstack_proj[[i]], freq = FALSE)
 
   ### Frequency of most frequent class (fraction of runs)
   # rf_res_MaxClassF <- terra::modal(rf_pred_foldstack, freq = TRUE) / 10  # old method - doesn't work
-  rf_res_future_freq_count <- sum(rf_pred_foldstack_future[[i]] == rf_res_future_MaxClass, na.rm = TRUE)
-  rf_res_future_MaxClassF <- rf_res_future_freq_count / 10
+  rf_res_proj_freq_count <- sum(rf_pred_foldstack_proj[[i]] == rf_res_proj_MaxClass, na.rm = TRUE)
+  rf_res_proj_MaxClassF <- rf_res_proj_freq_count / 10
 
   ### Average probability of classes
-  # rf_res_future_AvgProb <- map(period_all, function(poi) {
+  # rf_res_proj_AvgProb <- map(period_all, function(poi) {
   #   map(ssp_all, function(sspoi) {
-  #     fold_layers <- map(fold_predictions_spatial_future, ~ .x[[poi]][[sspoi]])
+  #     fold_layers <- map(fold_predictions_spatial_proj, ~ .x[[poi]][[sspoi]])
   #     Reduce("+", fold_layers) / 10
   #   }) %>% set_names(ssp_all)
   # }) %>% set_names(period_all) %>%
   #   unlist()
 
-  rf_res_future_AvgProb <- map(fold_predictions_spatial_future, 
+  rf_res_proj_AvgProb <- map(fold_predictions_spatial_proj, 
     ~ .x[[str_extract(comb_name, "^P\\d")]][[str_extract(comb_name,"\\d-\\d\\.\\d$")]])
-  rf_res_future_AvgProb <- Reduce("+", rf_res_future_AvgProb) / 10
+  rf_res_proj_AvgProb <- Reduce("+", rf_res_proj_AvgProb) / 10
   
   ### Average probability of maximum frequency class
-  rf_res_future_MaxClassAvgProb <- terra::selectRange(rf_res_future_AvgProb, rf_res_future_MaxClass + 1)
+  rf_res_proj_MaxClassAvgProb <- terra::selectRange(rf_res_proj_AvgProb, rf_res_proj_MaxClass + 1)
 
   ### Combined confidence metric
-  rf_res_future_CombConf <- rf_res_future_MaxClassF * rf_res_future_MaxClassAvgProb
+  rf_res_proj_CombConf <- rf_res_proj_MaxClassF * rf_res_proj_MaxClassAvgProb
 
   ### Number of models predicting presence
-  rf_res_future_CVSum <- terra::app(rf_pred_foldstack_future[[i]], sum, na.rm = TRUE)
+  rf_res_proj_CVSum <- terra::app(rf_pred_foldstack_proj[[i]], sum, na.rm = TRUE)
   
-  ### Save future rasters for each metric ----
-  rm(rf_res_future_freq_count, rf_res_future_AvgProb)
-  lapply(ls(pattern = "rf_res_future"), function(res_name) {
+  ### Save projection rasters for each metric ----
+  rm(rf_res_proj_freq_count, rf_res_proj_AvgProb)
+  lapply(ls(pattern = "rf_res_proj"), function(res_name) {
     res_raster <- get(res_name)
-    terra::writeRaster(res_raster, filename = paste0("output/02_Modelling_Outputs/", vmeoi, "/",
-      paste(vmeoi, res_name, comb_name, sep = "_"), ".tif"), overwrite = TRUE)
+    terra::writeRaster(res_raster, 
+      filename = paste0(output_folder,"/rasters/",vmeoi,"_",res_name,"_",comb_name,".tif"), overwrite = TRUE)
   })
 
 }
