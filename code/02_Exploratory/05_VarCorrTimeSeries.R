@@ -10,10 +10,9 @@
 # Which layers should we calculate correlations for?
 selected_vme_vars
 
-baseline_layers <- 
-baseline_layers <- as.list(vme_layers_current) %>%
-  # set_names(paste0("baseline.",names(vme_layers_current)))
-  set_names(names(vme_layers_current))
+baseline_layers <- as.list(vme_layers_baseline) %>%
+  # set_names(paste0("baseline.",names(vme_layers_baseline)))
+  set_names(names(vme_layers_baseline))
 baseline_layers <- c(baseline_layers)
 
 # projection_layers <- unlist(cmip_layers_future, recursive = FALSE)
@@ -21,16 +20,22 @@ baseline_layers <- c(baseline_layers)
 
 # all_layers <- c(baseline_layers, projection_layers)
 
-projection_layers <- unlist(vme_layers_future, recursive = FALSE)
+projection_layers <- unlist(vme_layers_proj, recursive = FALSE)
 
 all_layers <- list()
-all_layers[[1]] <- vme_layers_current
+all_layers[[1]] <- vme_layers_baseline
 names(all_layers) <- "baseline"
 all_layers <- c(all_layers, projection_layers)
 
 # Let's extract the points where VME P/A data is
 vme_pred_df <- lapply(all_layers, function(layer) {
-  terra::extract(layer, select(resp_df, Start_Long_DD, Start_Lat_DD)) %>%
+  terra::extract(
+    layer, 
+    select(
+      filter(resp_df, VME_Group == vmeoi) %>%
+        drop_na(),
+      Start_Long_DD, Start_Lat_DD)
+    ) %>%
     select(-ID)
 }) #%>%
 #   bind_cols() %>%
@@ -93,3 +98,27 @@ p2 <- ggplot(data = filter(vme_layers_cor, period != "baseline"), aes(x = var1, 
         axis.title = element_blank()) +
   labs(fill = "Correlation")
 ggsave(paste0(main_output_folder,"cor_plot_periodssp.jpg"), plot = p2)
+
+# Testing equality of correlation matrices
+
+# Use tool eqCorrMatTest from ldstatsHD packages (cran/ldstatsHD)
+# ldstatsHD relies on camel dependency (cran/camel)
+
+ldstatsHD::eqCorrMatTest()
+
+
+EX2 <- ldstatsHD::pcorSimulatorJoint(nobs = 50, nclusters = 3, nnodesxcluster = c(40,40,40), 
+                          pattern = "pow", diffType = "cluster", dataDepend = "diag", 
+                          pdiff=0.5)	
+
+d1 <- as.matrix(vme_pred_df$`P1.1-2.6`)
+d2 <- as.matrix(vme_pred_df$`P1.2-4.5`)
+
+test1 <- ldstatsHD::eqCorrMatTest(
+  d1, 
+  d2, 
+  testStatistic = c("AS","max","exc"), 
+  excAdj = FALSE,
+  # testNullDist = "asyDep",
+  paired = TRUE, 
+  nite = 400)

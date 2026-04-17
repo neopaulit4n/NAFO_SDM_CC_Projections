@@ -80,9 +80,10 @@ ggsave(plot_rf_prelim_var_imp,
 
 ### Plot correlation matrix prior to variables selection ----
 cat("Calculating variable correlations and plotting correlation matrix...\n")
-cor_df <- cor(vme_df[, vme_vars, drop = FALSE], 
-                  method = "spearman",
-                  use = "pairwise.complete.obs") %>%
+cor_df <- cor(
+  vme_df[, vme_vars, drop = FALSE], 
+  method = "spearman",
+  use = "pairwise.complete.obs") %>%
   as.data.frame %>%
   pivot_longer(everything(), names_to = "var2", values_to = "cor") %>%
   mutate(var1 = rep(vme_vars, each = length(vme_vars))) %>%
@@ -251,7 +252,7 @@ vme_var_selection <- select_vme_vars(vme_df[,-1], vmeoi = vmeoi, cor_threshold =
 selected_vme_vars <- vme_var_selection$selected_vars
 
 # Remove BT_min to test extrapolation and models without it (biggest cause of extrapolation)
-selected_vme_vars <- selected_vme_vars[!selected_vme_vars %in% "BT_min"]
+# selected_vme_vars <- selected_vme_vars[!selected_vme_vars %in% "BT_min"]
 
 #### Update VIF table with this iteration's results
 vif_df_i <- data.frame(

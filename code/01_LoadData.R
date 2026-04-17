@@ -56,30 +56,30 @@ baseline_df <- read_csv("data/cleaned/cmip_ens_1993_2014_df.csv", show_col_types
     MLD_Sp = mldavg_Sp
   ) %>%
   select(-month) %>%
-  group_by(lon, lat) %>%
-  summarise(across(SST:BStr, 
-    list(
-      mean = ~mean(.x, na.rm = TRUE),
-      min = ~min(.x, na.rm = TRUE),
-      max = ~max(.x, na.rm = TRUE), 
-      range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)
-    ),
-    .names = "{col}_{fn}")) %>%
-  ungroup()
+  summarise(
+    across(SST:BStr, 
+      list(
+        mean = ~mean(.x, na.rm = TRUE),
+        min = ~min(.x, na.rm = TRUE),
+        max = ~max(.x, na.rm = TRUE), 
+        range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)
+      ),
+      .names = "{col}_{fn}"),
+    .by = c(lon, lat))
 
 # Average predictors for each period and SSP (will use these to predict on) ----
 cmip_df_period_ssp <- cmip_df %>%
   filter(!is.na(period)) %>%
-  group_by(lon, lat, period, ssp) %>%
-  summarise(across(BS:MLD, 
-    list(
-      mean = ~mean(.x, na.rm = TRUE),
-      min = ~min(.x, na.rm = TRUE),
-      max = ~max(.x, na.rm = TRUE), 
-      range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)
-    ),
-    .names = "{col}_{fn}")) %>%
-  ungroup()
+  summarise(
+    across(BS:MLD, 
+      list(
+        mean = ~mean(.x, na.rm = TRUE),
+        min = ~min(.x, na.rm = TRUE),
+        max = ~max(.x, na.rm = TRUE), 
+        range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)
+      ),
+      .names = "{col}_{fn}"),
+    .by = c(lon, lat, period, ssp))
 
 # Get study area extent and create spatial mask ----
 sa <- terra::rast("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint/NRA_BNAM_b_cur_avg_max.tif") %>%
