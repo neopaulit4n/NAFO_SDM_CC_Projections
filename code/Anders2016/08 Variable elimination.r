@@ -9,8 +9,8 @@
 
 # Import libraries
 library(raster)
-library(rgdal)
-library(maptools)
+# library(rgdal)
+# library(maptools)
 library(randomForest)
 library(pROC)
 library(tcltk2)

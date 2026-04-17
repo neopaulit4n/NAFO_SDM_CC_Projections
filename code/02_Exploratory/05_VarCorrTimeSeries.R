@@ -6,38 +6,53 @@
 
 # I want to plot correlations between variable pairs over time
 
+# baseline_layers <- as.list(vme_layers_baseline) %>%
+#   # set_names(paste0("baseline.",names(vme_layers_baseline)))
+#   set_names(names(vme_layers_baseline))
+# baseline_layers <- c(baseline_layers)
 
-# Which layers should we calculate correlations for?
-selected_vme_vars
-
-baseline_layers <- as.list(vme_layers_baseline) %>%
-  # set_names(paste0("baseline.",names(vme_layers_baseline)))
-  set_names(names(vme_layers_baseline))
-baseline_layers <- c(baseline_layers)
+baseline_layers <- c(cmip_layers, CHNETBL3 = bathy_layers$CHNETBL3) |>
+  terra::rast()
 
 # projection_layers <- unlist(cmip_layers_future, recursive = FALSE)
 # projection_layers <- projection_layers[grep(paste(selected_vme_vars, collapse = "|"), names(projection_layers))]
 
 # all_layers <- c(baseline_layers, projection_layers)
 
-projection_layers <- unlist(vme_layers_proj, recursive = FALSE)
+# projection_layers <- unlist(vme_layers_proj, recursive = FALSE)
+projection_layers <- unlist(cmip_layers_proj, recursive = FALSE) |>
+  lapply(X = _, 
+    function(layer) {
+      c(layer, CHNETBL3 = bathy_layers$CHNETBL3) |>
+        terra::rast()
+    })
 
 all_layers <- list()
-all_layers[[1]] <- vme_layers_baseline
+all_layers[[1]] <- baseline_layers
 names(all_layers) <- "baseline"
 all_layers <- c(all_layers, projection_layers)
 
-# Let's extract the points where VME P/A data is
-vme_pred_df <- lapply(all_layers, function(layer) {
-  terra::extract(
-    layer, 
-    select(
-      filter(resp_df, VME_Group == vmeoi) %>%
-        drop_na(),
-      Start_Long_DD, Start_Lat_DD)
-    ) %>%
-    select(-ID)
-}) #%>%
+all_layers_df <- lapply(all_layers, terra::as.data.frame)
+
+# Output base dataframes used to calculate correlations between variables
+if (!dir.exists("output/01_Exploratory/04_CorrelationMatrices")) dir.create("output/01_Exploratory/04_CorrelationMatrices")
+
+lapply(1:length(all_layers_df), 
+  function(layer) {
+    write_csv(df, paste0("output/01_Exploratory/04_CorrelationMatrices/dataframes/",names(all_layers_df)[layer],"_df.csv"))
+  })
+
+# Let's extract the points where VME P/A data is - actually we don't want to do that for this
+# vme_pred_df <- lapply(all_layers, function(layer) {
+#   terra::extract(
+#     layer, 
+#     select(
+#       filter(resp_df, VME_Group == vmeoi) %>%
+#         drop_na(),
+#       Start_Long_DD, Start_Lat_DD)
+#     ) %>%
+#     select(-ID)
+# }) #%>%
 #   bind_cols() %>%
 #   set_names(names(all_layers))
 
@@ -48,18 +63,21 @@ vme_pred_df <- lapply(all_layers, function(layer) {
 
 # Calculate correlations
 # vme_layers_cor <- cor(vme_pred_df, method = "spearman", use = "pairwise.complete.obs")
-vme_layers_cor <- lapply(vme_pred_df, function(layer) {
-  cor_mat <- cor(layer, method = "spearman", use = "pairwise.complete.obs")
-  cor_long <- as.data.frame(cor_mat) %>%
-    rownames_to_column(var = "var1") %>%
-    pivot_longer(-var1, names_to = "var2", values_to = "cor")
-  return(cor_long)
-}) %>%
-  bind_rows(.id = "PeriodSSP") %>%
-  mutate(
-    period = ifelse(is.na(str_extract(PeriodSSP, "P\\d")), "baseline", str_extract(PeriodSSP, "P\\d")),
-    ssp = ifelse(is.na(str_extract(PeriodSSP, "\\d-\\d\\.\\d")), "", str_extract(PeriodSSP, "\\d-\\d\\.\\d"))
-  )
+all_layers_cor <- lapply(1:length(all_layers_df), function(layer) {
+  # cat(names(layer))
+  cor_mat <- cor(all_layers_df[[layer]], method = "spearman", use = "complete.obs") |>
+    as.data.frame()
+  # cor_long <- as.data.frame(cor_mat) %>%
+  #   rownames_to_column(var = "var1") %>%
+  #   pivot_longer(-var1, names_to = "var2", values_to = "cor")
+  # return(cor_long)
+  write.csv(cor_mat, paste0("output/01_Exploratory/04_CorrelationMatrices/correlation_matrices/",names(all_layers_df)[layer],"_cor.csv"))
+}) #%>%
+  # bind_rows(.id = "PeriodSSP") %>%
+  # mutate(
+  #   period = ifelse(is.na(str_extract(PeriodSSP, "P\\d")), "baseline", str_extract(PeriodSSP, "P\\d")),
+  #   ssp = ifelse(is.na(str_extract(PeriodSSP, "\\d-\\d\\.\\d")), "", str_extract(PeriodSSP, "\\d-\\d\\.\\d"))
+  # )
 
 
 # Tidy dataframe
