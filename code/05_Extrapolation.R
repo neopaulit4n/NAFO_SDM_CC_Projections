@@ -57,11 +57,18 @@ extrapolation_rasters_mask <- lapply(1:length(extrapolation_rasters), function(x
     layer <- terra::as.factor(layer)
     levels(layer) <- data.frame(id = 0:length(selected_vme_vars), covariate = c("None", selected_vme_vars))
   }
+  terra::writeRaster(
+    layer, 
+    filename = paste0(output_folder,"/rasters/",vmeoi,"_extrap_",output_name,"_",names(extrapolation_rasters)[x],".tif"),
+    overwrite = TRUE
+  )
   return(layer)
 }) %>%
   set_names(names(extrapolation_rasters))
 
 # dsmextra::map_extrapolation(map.type = "extrapolation", extrapolation.object = extrapolation_area[[1]])
+
+# next()
 
 ## Extract limits for univariate and combinatorial legends ----
 lim_uni <- c(

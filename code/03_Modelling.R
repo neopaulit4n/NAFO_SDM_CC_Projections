@@ -35,7 +35,6 @@ vme_vars <- c(vme_terrain_vars, names(cmip_layers))
 vme_df <- filter(cmip_comb_df, VME_Group == vmeoi) %>%
   select(all_of(c("VME_P_A", vme_vars)))
 
-
 ## Preliminary RF model formula ----  
 rf_prelim_form <- as.formula(paste("VME_P_A ~", 
                                   paste(vme_vars, collapse = " + ")))
@@ -279,7 +278,6 @@ if (!vme_terrain_vars %in% selected_vme_vars) {
 
 vif_df <- rbind(vif_df, vif_df_i)
 
-
 # Create final dataframe with selected variables ----
 vme_df <- vme_df %>%
   select(all_of(c("VME_P_A", selected_vme_vars)))
@@ -398,14 +396,14 @@ for (i in 1:10) {
     arrange(desc(MeanDecreaseGini))
 
   # Fold partial dependence data
-  cat("  Extracting partial dependence data\n")
-  fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
-    pdp::partial(fold_model[[i]], 
-      pred.var = var,
-      plot = FALSE) %>%
-      mutate(Variable = colnames(.)[1]) %>%
-      rename(value = var)
-  })
+  # cat("  Extracting partial dependence data\n")
+  # fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
+  #   pdp::partial(fold_model[[i]], 
+  #     pred.var = var,
+  #     plot = FALSE) %>%
+  #     mutate(Variable = colnames(.)[1]) %>%
+  #     rename(value = var)
+  # })
   
   cat("  Generating spatial predictions under baseline conditions\n")
   # Spatial predictions for this fold
@@ -617,6 +615,7 @@ for (i in 1:length(rf_pred_foldstack_proj)) {
 
   ### Most frequent class (0/1)
   rf_res_proj_MaxClass <- terra::modal(rf_pred_foldstack_proj[[i]], freq = FALSE)
+  rf_res_proj_MaxClass_reclass <- terra::as.bool(rf_res_proj_MaxClass)
 
   ### Frequency of most frequent class (fraction of runs)
   # rf_res_MaxClassF <- terra::modal(rf_pred_foldstack, freq = TRUE) / 10  # old method - doesn't work
@@ -654,3 +653,10 @@ for (i in 1:length(rf_pred_foldstack_proj)) {
   })
 
 }
+
+# Output environmental variable layers baseline and projected ----
+env_layers <- c(bathy_layers, cmip_layers, unlist(cmip_layers_proj))
+env_layer_names <- names(env_layers)
+lapply(1:length(env_layers), function(layer) {
+  terra::writeRaster(env_layers[[layer]], filename = paste0("output/env_vars_rasters/",env_layer_names[layer],".tif"))
+})
