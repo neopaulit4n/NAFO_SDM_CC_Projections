@@ -38,7 +38,7 @@ all_layers[[1]] <- baseline_layers
 names(all_layers) <- "baseline"
 all_layers <- c(all_layers, projection_layers)
 
-all_layers_df <- lapply(all_layers, terra::as.data.frame)
+all_layers_df <- lapply(all_layers, function(x) terra::as.data.frame(x) |> drop_na())
 
 # Output base dataframes used to calculate correlations between variables
 lapply(1:length(all_layers_df), function(df) {
@@ -46,7 +46,6 @@ lapply(1:length(all_layers_df), function(df) {
 })
 
 # Calculate correlations ----
-# vme_layers_cor <- cor(vme_pred_df, method = "spearman", use = "pairwise.complete.obs")
 all_layers_cor <- lapply(1:length(all_layers_df), function(layer) {
   cor_mat <- cor(all_layers_df[[layer]], method = "spearman", use = "complete.obs") |>
     as.data.frame()
@@ -185,3 +184,10 @@ lapply(names(all_layers_overlap), function(x) {
 #   labs(fill = "Correlation")
 # ggsave(paste0(main_output_folder,"cor_plot_periodssp.jpg"), plot = p2)
 
+ggplot(data=NULL, aes(x = all_layers_df$`P4.5-8.5`$BS_mean, y = all_layers_df$`P4.5-8.5`$BT_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(data=NULL, aes(x = all_layers_df$baseline$BS_mean, y = all_layers_df$baseline$BT_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm")
