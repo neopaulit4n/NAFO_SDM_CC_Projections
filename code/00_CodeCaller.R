@@ -43,9 +43,12 @@ for (vmeoi in "black_corals") {  # vme_all
     variable = character(),
     vif = numeric())
   
+  # Variable selection for this VME group
+  cat("Running variable selection for VME group:", vmeoi, "\n")
+  source("code/02_VariableSelection.R")
+  
   # Modelling for this VME group
-  cat("Running modelling for VME group:", vmeoi, 
-      "\n")
+  cat("Running modelling for VME group:", vmeoi, "\n")
   source("code/03_Modelling.R")
   
   # Summary outputs by VME group

@@ -4,11 +4,13 @@
 library(tidyverse)
 
 # Load response ----
+cat("Loading response dataframe\n")
 resp_df <- read_csv("data/cleaned/VME_group_PA_df.csv", show_col_types = FALSE)
 
 # Load predictors ----
 
 ## Load terrain variables (static) ----
+cat("Loading terrain variables\n")
 bathy_layers <- list.files(path = "data/raw/BNAM_Data_From_Cam/Bathymetry_Terrain_From_NAFO_SharePoint", 
                            pattern = "\\.tif$", full.names = TRUE) %>%
   set_names(., nm = basename(.) %>% tools::file_path_sans_ext()) %>%
@@ -18,7 +20,8 @@ bathy_layers <- list.files(path = "data/raw/BNAM_Data_From_Cam/Bathymetry_Terrai
 names(bathy_layers) <- gsub("GEBCO2024_FS005_StudyArea_","",names(bathy_layers))
 names(bathy_layers)[1] <- "FS005"
 
-# Load ensembled CMIP data ----
+## Load ensembled CMIP data ----
+cat("Loading CMIP data\n")
 cmip_df <- readRDS("data/processed/ens_df.rds") %>%
   pivot_wider(names_from = season, values_from = mldavg, names_glue = {"{.value}_{season}"}) %>%
   mutate(mldavg = coalesce(mldavg_W,mldavg_F,mldavg_Su,mldavg_Sp)) %>%
@@ -95,6 +98,7 @@ sa_lims <- sf::st_coordinates(sa) %>% as.data.frame %>%
 sa_lims <- c(min(sa_lims$X), max(sa_lims$X),min(sa_lims$Y),max(sa_lims$Y))
 
 # Transform CMIP data to raster ----
+cat("Transforming CMIP dataframe to raster layers\n")
 transform_cmip_to_raster <- function(data, varstat, poi = NULL, sspoi = NULL) {
 
   # Select a layer of data to raster
@@ -131,5 +135,37 @@ transform_cmip_to_raster <- function(data, varstat, poi = NULL, sspoi = NULL) {
 
 cmip_vars <- colnames(select(cmip_df_period_ssp, contains("_")))
 
+cmip_layers <- lapply(cmip_vars, function(var) {
+  transform_cmip_to_raster(data = baseline_df, varstat = var)
+}) %>%
+  set_names(cmip_vars)
 
+# Extract data from raster layers to the VME response points ----
+cat("Extracting data from raster layers to VME PA points\n")
+suppressMessages(cmip_pred_df <- lapply(c(bathy_layers, cmip_layers), function(layer) {
+  terra::extract(layer, select(resp_df, Start_Long_DD, Start_Lat_DD)) %>%
+  select(-ID)
+}) %>%
+  bind_cols() %>%
+  set_names(c(names(bathy_layers), names(cmip_layers)))
+)
 
+# Combine predictor and response dataframes ----
+cmip_comb_df <- bind_cols(resp_df, cmip_pred_df) %>%
+  mutate(VME_P_A = factor(VME_P_A, levels = c(0, 1), labels = c("Absence", "Presence"))) %>%
+  drop_na()
+
+# Create CMIP raster layers for projected scenarios ----
+cat("Creating projected CMIP raster layers\n")
+cmip_layers_proj <- lapply(period_all, function(poi) {
+  lapply(ssp_all, function(sspoi) {
+    lapply(cmip_vars, function(var) {
+      transform_cmip_to_raster(data = cmip_df_period_ssp, sspoi = sspoi, poi = poi, varstat = var)
+    }) %>%
+      set_names(cmip_vars)
+  }) %>%
+    set_names(ssp_all)  
+}) %>%
+  set_names(period_all)
+
+cat("Done!\n")
