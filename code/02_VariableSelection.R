@@ -52,7 +52,7 @@ ggsave(plot_rf_prelim_var_imp,
 # If values are > 10, need to recompute Spearman correlation at lower threshold 
 #   (increments of 0.05) and re-run variable selection until all variables achieve VIF < 10.
 
-cat("Calculating variable correlations and plotting correlation matrix...\n")
+cat("Calculating variable correlations...\n")
 cor_df <- cor(
   vme_df[, vme_vars, drop = FALSE], 
   method = "spearman",

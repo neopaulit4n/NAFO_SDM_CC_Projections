@@ -4,12 +4,6 @@
 # Load data ----
 source("code/01_LoadData.R")
 
-# Create table of each combination of iterations to save variable selection results ----
-vme_all <- unique(resp_df$VME_Group)
-period_all <- c("P1", "P2", "P3", "P4")
-ssp_all <- unique(cmip_df_period_ssp$ssp)
-# period_ssp_all <- apply(expand.grid(period_all, ssp_all), 1, paste, sep = "_", collapse = "_")
-
 vmeoi <- "black_corals"
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----

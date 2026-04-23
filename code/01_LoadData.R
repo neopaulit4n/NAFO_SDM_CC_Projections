@@ -84,6 +84,11 @@ cmip_df_period_ssp <- cmip_df %>%
       .names = "{col}_{fn}"),
     .by = c(lon, lat, period, ssp))
 
+# All combinations ----
+vme_all <- unique(resp_df$VME_Group)
+period_all <- c("P1", "P2", "P3", "P4")
+ssp_all <- unique(cmip_df_period_ssp$ssp)
+
 # Get study area extent and create spatial mask ----
 sa <- terra::rast("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint/NRA_BNAM_b_cur_avg_max.tif") %>%
   terra::as.polygons(.) %>%

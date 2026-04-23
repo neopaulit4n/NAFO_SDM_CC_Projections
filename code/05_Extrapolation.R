@@ -47,7 +47,6 @@ extrapolation_rasters <- lapply(extrapolation_area, function(extrap) {
   set_names(c("PA","PresenceOnly")) %>%
   unlist()
 
-
 # Extrapolation layer maps ----
 
 ## Prepare rasters for mapping ----
@@ -65,6 +64,26 @@ extrapolation_rasters_mask <- lapply(1:length(extrapolation_rasters), function(x
   return(layer)
 }) %>%
   set_names(names(extrapolation_rasters))
+
+if (output_name == "P3.3-7.0") {
+  # Fixing combinatorial layers for P3 SSP 3-7.0 ----
+  replace_layer <- terra::merge(extrapolation_rasters_mask[[8]], extrapolation_rasters_mask[[10]])
+  comp_layer <- cmip_layers_proj[[1]][[1]][[1]] %>%
+    terra::crop(replace_layer)
+
+  missing_cells <- terra::logic(replace_layer, comp_layer, oper = "is.na") %>%
+    terra::mask(comp_layer)
+
+  extrapolation_rasters_mask[[6]] <- terra::resample(extrapolation_rasters_mask[[6]], missing_cells) %>%
+    terra::mask(missing_cells) %>%
+    terra::crop(missing_cells)
+
+  extrapolation_rasters_mask[[9]] <- terra::resample(extrapolation_rasters_mask[[9]], missing_cells) %>%
+    terra::mask(missing_cells) %>%
+    terra::crop(missing_cells)
+
+  rm(replace_layer, comp_layer, missing_cells)
+}
 
 # dsmextra::map_extrapolation(map.type = "extrapolation", extrapolation.object = extrapolation_area[[1]])
 
@@ -136,17 +155,29 @@ extrap_exdet_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
 #   plot = extrap_exdet_maps,
 #   width = 10, height = 5, dpi = 300)
 
-
 ## Generate MIC maps ----
 extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
+
+  mic_layer <- terra::merge(
+    extrapolation_rasters_mask[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(extrapolation_rasters_mask))]],
+    extrapolation_rasters_mask[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(extrapolation_rasters_mask))]]
+  )
+  {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))) > 0) { 
+    mic_layer <- terra::merge(
+      mic_layer, 
+      extrapolation_rasters_mask[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]]
+    )
+  }}
+
   ggplot() +
     theme_classic() +
     labs(title = ifelse(dataset == "PA", "Presence + Absence", "Presence Only")) +
-    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(extrapolation_rasters_mask))]]) +
-    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(extrapolation_rasters_mask))]]) +
-    {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))) > 0) {
-      tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]])
-    }} +
+    tidyterra::geom_spatraster(data = mic_layer) +
+    # tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(extrapolation_rasters_mask))]]) +
+    # tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(extrapolation_rasters_mask))]]) +
+    # {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))) > 0) {     
+    #   tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]])
+    # }} +
     paletteer::scale_fill_paletteer_d(palette = "colorBlindness::paletteMartin", 
       name = "Covariate", na.value = "transparent", na.translate = FALSE) +
     # if (dataset == "PresenceOnly") {
