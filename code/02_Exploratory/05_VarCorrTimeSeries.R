@@ -5,9 +5,9 @@
 # Examples I see for ADF are for only one variable time series, not correlations between variables
 
 # Create directories ----
-if (!dir.exists(paste0(output_folder,"/VarCorrelations/InputDataframes"))) dir.create(paste0(output_folder,"/VarCorrelations/InputDataframes"))
-if (!dir.exists(paste0(output_folder,"/VarCorrelations/CorMat"))) dir.create(paste0(output_folder,"/VarCorrelations/CorMat"))
-if (!dir.exists(paste0(output_folder,"/VarCorrelations/Plots"))) dir.create(paste0(output_folder,"/VarCorrelations/Plots"))
+if (!dir.exists(paste0(output_folder,"/VarCorrelations/01_InputDataframes"))) dir.create(paste0(output_folder,"/VarCorrelations/01_InputDataframes"))
+if (!dir.exists(paste0(output_folder,"/VarCorrelations/02_CorMat"))) dir.create(paste0(output_folder,"/VarCorrelations/02_CorMat"))
+if (!dir.exists(paste0(output_folder,"/VarCorrelations/03_CorPlots"))) dir.create(paste0(output_folder,"/VarCorrelations/03_CorPlots"))
 
 # Plot correlations between variable pairs over time
 
@@ -42,14 +42,14 @@ all_layers_df <- lapply(all_layers, function(x) terra::as.data.frame(x) |> drop_
 
 # Output base dataframes used to calculate correlations between variables
 lapply(1:length(all_layers_df), function(df) {
-  write_csv(all_layers_df[[df]], paste0(output_folder,"/VarCorrelations/InputDataframes/FullArea_",names(all_layers_df)[df],"_df.csv"))
+  write_csv(all_layers_df[[df]], paste0(output_folder,"/VarCorrelations/01_InputDataframes/FullArea_",names(all_layers_df)[df],"_df.csv"))
 })
 
 # Calculate correlations ----
 all_layers_cor <- lapply(1:length(all_layers_df), function(layer) {
   cor_mat <- cor(all_layers_df[[layer]], method = "spearman", use = "complete.obs") |>
     as.data.frame()
-  write.csv(cor_mat, paste0(output_folder,"/VarCorrelations/CorMat/FullArea_",names(all_layers_df)[layer],"_cor.csv"))
+  # write.csv(cor_mat, paste0(output_folder,"/VarCorrelations/02_CorMat/FullArea_",names(all_layers_df)[layer],"_cor.csv"))
   cor_long <- as.data.frame(cor_mat) %>%
     rownames_to_column(var = "var1") %>%
     pivot_longer(-var1, names_to = "var2", values_to = "cor")
@@ -80,7 +80,7 @@ lapply(names(all_layers_df), function(x) {
     labs(fill = "Correlation",
         title = x_name)
   ggsave(
-    filename = paste0(output_folder,"/VarCorrelations/Plots/FullArea_",x,".jpg"),
+    filename = paste0(output_folder,"/VarCorrelations/03_CorPlots/FullArea_",x,".jpg"),
     plot = p, width = 8, height = 6
   )
 })
@@ -104,14 +104,14 @@ all_layers_overlap <- lapply(all_layers, function(layer) {
 
 # Output base dataframes used to calculate correlations between variables
 lapply(1:length(all_layers_overlap), function(df) {
-  write_csv(all_layers_overlap[[df]], paste0(output_folder,"/VarCorrelations/InputDataframes/OverlapVME_",names(all_layers_overlap)[df],"_df.csv"))
+  write_csv(all_layers_overlap[[df]], paste0(output_folder,"/VarCorrelations/01_InputDataframes/OverlapVME_",names(all_layers_overlap)[df],"_df.csv"))
 })
 
 # Calculate correlations ----
 all_layers_overlap_cor <- lapply(1:length(all_layers_overlap), function(layer) {
   cor_mat <- cor(all_layers_overlap[[layer]], method = "spearman", use = "complete.obs") |>
     as.data.frame()
-  write.csv(cor_mat, paste0(output_folder,"/VarCorrelations/CorMat/OverlapVME_",names(all_layers_overlap)[layer],"_cor.csv"))
+  # write.csv(cor_mat, paste0(output_folder,"/VarCorrelations/02_CorMat/OverlapVME_",names(all_layers_overlap)[layer],"_cor.csv"))
   cor_long <- as.data.frame(cor_mat) %>%
     rownames_to_column(var = "var1") %>%
     pivot_longer(-var1, names_to = "var2", values_to = "cor")
@@ -124,7 +124,7 @@ all_layers_overlap_cor <- lapply(1:length(all_layers_overlap), function(layer) {
     ssp = ifelse(is.na(str_extract(PeriodSSP, "\\d-\\d\\.\\d")), "", str_extract(PeriodSSP, "\\d-\\d\\.\\d"))
   )
 
-# Output correlation plots ----
+# Output correlation plots for overlapping cells ----
 lapply(names(all_layers_overlap), function(x) {
   df <- filter(all_layers_overlap_cor, PeriodSSP == x)
   x_name <- ifelse(x == "baseline", "Reference", paste(df$period[1], "SSP", df$ssp[1]))
@@ -142,52 +142,162 @@ lapply(names(all_layers_overlap), function(x) {
     labs(fill = "Correlation",
         title = x_name)
   ggsave(
-    filename = paste0(output_folder,"/VarCorrelations/Plots/OverlapVME_",x,".jpg"),
+    filename = paste0(output_folder,"/VarCorrelations/03_CorPlots/OverlapVME_",x,".jpg"),
     plot = p, width = 8, height = 6
   )
 })
 
-# Tidy dataframe
-# vme_layers_cor_long <- vme_layers_cor %>%
-#   as.data.frame(.) %>%
-#   rownames_to_column(., var = "var1") %>%
-#   pivot_longer(-var1, names_to = "var2", values_to = "cor") #%>%
-#   # filter(var1 != var2)
+# Calculate correlation differences between adjacent time periods and baseline over all SSPs for full NAFO area ----
+all_layers_cor_adj <- lapply(
+  list.files(
+    path = paste0(output_folder,"/VarCorrelations/02_CorMat"),
+    pattern = "FullArea",
+    full.names = TRUE
+  ),
+  function(x) read.csv(x, row.names = 1) |> as.matrix()
+) %>%
+  set_names(
+    str_extract(
+      list.files(path = paste0(output_folder,"/VarCorrelations/02_CorMat"), pattern = "FullArea"),
+      "_(.+?)_", 
+      group = 1
+  ))
 
-# p1 <- ggplot(data = filter(vme_layers_cor, period == "baseline"), aes(x = var1, y = var2, fill = cor)) +
-#   geom_tile(colour = "black") +
-#   # geom_text(aes(label = ifelse(cor > 0.7 | cor < -0.7, "*", ""))) +
-#   scale_fill_gradient2(low = "blue", mid = "white", high = "red", limit = c(-1,1), midpoint = 0) +
-#   scale_x_discrete(expand = c(0,0)) +
-#   scale_y_discrete(expand = c(0,0)) +
-#   theme_classic() +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-#         #axis.text = element_text(size = 6),
-#         axis.line = element_blank(),
-#         axis.title = element_blank()) +
-#   labs(fill = "Correlation",
-#        title = "Baseline")
-# ggsave(paste0(main_output_folder,"cor_plot_baseline.jpg"), plot = p1)
+all_layers_cor_adj_dif <- lapply(ssp_all, function(sspoi) {
+  layers_to_compare <- all_layers_cor_adj[c(1, grep(sspoi,names(all_layers_cor_adj)))]
+  diff_layers <- list(
+    layers_to_compare[[2]] - layers_to_compare[[1]],
+    layers_to_compare[[3]] - layers_to_compare[[2]],
+    layers_to_compare[[4]] - layers_to_compare[[3]],
+    layers_to_compare[[5]] - layers_to_compare[[4]],
+    layers_to_compare[[3]] - layers_to_compare[[1]],
+    layers_to_compare[[4]] - layers_to_compare[[1]],
+    layers_to_compare[[5]] - layers_to_compare[[1]]
+  )
+  names(diff_layers) <- c(
+    "P1 - baseline",
+    "P2 - P1",
+    "P3 - P2",
+    "P4 - P3",
+    "P2 - baseline",
+    "P3 - baseline",
+    "P4 - baseline"
+  )
+  return(diff_layers)
+}) %>%
+  set_names(ssp_all) %>%
+  unlist(recursive = FALSE)
 
-# p2 <- ggplot(data = filter(vme_layers_cor, period != "baseline"), aes(x = var1, y = var2, fill = cor)) +
-#   facet_wrap(~ssp + period) +
-#   geom_tile(colour = "black") +
-#   # geom_text(aes(label = ifelse(cor > 0.7 | cor < -0.7, "*", ""))) +
-#   scale_fill_gradient2(low = "blue", mid = "white", high = "red", limit = c(-1,1), midpoint = 0) +
-#   scale_x_discrete(expand = c(0,0)) +
-#   scale_y_discrete(expand = c(0,0)) +
-#   theme_classic() +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-#         #axis.text = element_text(size = 6),
-#         axis.line = element_blank(),
-#         axis.title = element_blank()) +
-#   labs(fill = "Correlation")
-# ggsave(paste0(main_output_folder,"cor_plot_periodssp.jpg"), plot = p2)
+all_layers_cor_adj_dif_df <- lapply(1:length(all_layers_cor_adj_dif), function(x) {
+  write.csv(
+    all_layers_cor_adj_dif[x],
+    file = paste0(output_folder,"/VarCorrelations/04_CorDiffMat/FullArea_",names(all_layers_cor_adj_dif)[x],"_cordiff.csv")
+  )
+  cor_long <- as.data.frame(all_layers_cor_adj_dif[[x]]) %>%
+    rownames_to_column(var = "var1") %>%
+    pivot_longer(-var1, names_to = "var2", values_to = "cordiff")
+  return(cor_long)
+}) %>%
+  set_names(names(all_layers_cor_adj_dif)) %>%
+  bind_rows(.id = "DiffID")
 
-ggplot(data=NULL, aes(x = all_layers_df$`P4.5-8.5`$BS_mean, y = all_layers_df$`P4.5-8.5`$BT_mean)) +
-  geom_point() +
-  geom_smooth(method = "lm")
+# Output correlation difference plots ----
+lapply(names(all_layers_cor_adj_dif), function(x) {
+  df <- filter(all_layers_cor_adj_dif_df, DiffID == x)
+  p <- ggplot(data = df, aes(x = var1, y = var2, fill = cordiff)) +
+    geom_tile(colour = "black") +
+    # geom_text(aes(label = ifelse(cor > 0.7 | cor < -0.7, "*", ""))) +
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red", 
+      limit = c(min(all_layers_cor_adj_dif_df$cordiff), max(all_layers_cor_adj_dif_df$cordiff)), midpoint = 0) +
+    scale_x_discrete(expand = c(0,0)) +
+    scale_y_discrete(expand = c(0,0)) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.text = element_text(size = 8),
+          axis.line = element_blank(),
+          axis.title = element_blank()) +
+    labs(fill = "Correlation difference",
+         title = x)
+  ggsave(
+    filename = paste0(output_folder,"/VarCorrelations/05_CorDiffPlots/FullArea_",x,".jpg"),
+    plot = p, width = 8, height = 6
+  )
+})
 
-ggplot(data=NULL, aes(x = all_layers_df$baseline$BS_mean, y = all_layers_df$baseline$BT_mean)) +
-  geom_point() +
-  geom_smooth(method = "lm")
+
+# Calculate correlation differences between adjacent time periods and baseline over all SSPs for overlapping PA cells ----
+all_layers_cor_adj <- lapply(
+  list.files(
+    path = paste0(output_folder,"/VarCorrelations/02_CorMat"),
+    pattern = "OverlapVME",
+    full.names = TRUE
+  ),
+  function(x) read.csv(x, row.names = 1) |> as.matrix()
+) %>%
+  set_names(
+    str_extract(
+      list.files(path = paste0(output_folder,"/VarCorrelations/02_CorMat"), pattern = "OverlapVME"),
+      "_(.+?)_", 
+      group = 1
+  ))
+
+all_layers_cor_adj_dif <- lapply(ssp_all, function(sspoi) {
+  layers_to_compare <- all_layers_cor_adj[c(1, grep(sspoi,names(all_layers_cor_adj)))]
+  diff_layers <- list(
+    layers_to_compare[[2]] - layers_to_compare[[1]],
+    layers_to_compare[[3]] - layers_to_compare[[2]],
+    layers_to_compare[[4]] - layers_to_compare[[3]],
+    layers_to_compare[[5]] - layers_to_compare[[4]],
+    layers_to_compare[[3]] - layers_to_compare[[1]],
+    layers_to_compare[[4]] - layers_to_compare[[1]],
+    layers_to_compare[[5]] - layers_to_compare[[1]]
+  )
+  names(diff_layers) <- c(
+    "P1 - baseline",
+    "P2 - P1",
+    "P3 - P2",
+    "P4 - P3",
+    "P2 - baseline",
+    "P3 - baseline",
+    "P4 - baseline"
+  )
+  return(diff_layers)
+}) %>%
+  set_names(ssp_all) %>%
+  unlist(recursive = FALSE)
+
+all_layers_cor_adj_dif_df <- lapply(1:length(all_layers_cor_adj_dif), function(x) {
+  write.csv(
+    all_layers_cor_adj_dif[x],
+    file = paste0(output_folder,"/VarCorrelations/04_CorDiffMat/OverlapVME_",names(all_layers_cor_adj_dif)[x],"_cordiff.csv")
+  )
+  cor_long <- as.data.frame(all_layers_cor_adj_dif[[x]]) %>%
+    rownames_to_column(var = "var1") %>%
+    pivot_longer(-var1, names_to = "var2", values_to = "cordiff")
+  return(cor_long)
+}) %>%
+  set_names(names(all_layers_cor_adj_dif)) %>%
+  bind_rows(.id = "DiffID")
+
+# Output correlation difference plots ----
+lapply(names(all_layers_cor_adj_dif), function(x) {
+  df <- filter(all_layers_cor_adj_dif_df, DiffID == x)
+  p <- ggplot(data = df, aes(x = var1, y = var2, fill = cordiff)) +
+    geom_tile(colour = "black") +
+    # geom_text(aes(label = ifelse(cor > 0.7 | cor < -0.7, "*", ""))) +
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red", 
+      limit = c(min(all_layers_cor_adj_dif_df$cordiff), max(all_layers_cor_adj_dif_df$cordiff)), midpoint = 0) +
+    scale_x_discrete(expand = c(0,0)) +
+    scale_y_discrete(expand = c(0,0)) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.text = element_text(size = 8),
+          axis.line = element_blank(),
+          axis.title = element_blank()) +
+    labs(fill = "Correlation difference",
+         title = x)
+  ggsave(
+    filename = paste0(output_folder,"/VarCorrelations/05_CorDiffPlots/OverlapVME_",x,".jpg"),
+    plot = p, width = 8, height = 6
+  )
+})

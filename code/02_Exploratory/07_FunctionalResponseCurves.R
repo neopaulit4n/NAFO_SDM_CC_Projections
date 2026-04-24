@@ -16,6 +16,6 @@ ggplot(data = frc_df, aes(x = Value, y = mean_pres_prob)) +
   facet_wrap(~ Variable, scales = "free") +
   # geom_point() +
   # geom_smooth(method = "loess", se = FALSE) +  # takes a very long time
-  geom_smooth() +
+  geom_smooth() +  # uses GAM by default
   theme_classic()
 
