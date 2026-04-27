@@ -58,7 +58,7 @@ extrapolation_rasters_mask <- lapply(1:length(extrapolation_rasters), function(x
   }
   terra::writeRaster(
     layer, 
-    filename = paste0(output_folder,"/rasters/",vmeoi,"_extrap_",output_name,"_",names(extrapolation_rasters)[x],".tif"),
+    filename = paste0(output_folder,"/Extrapolations/rasters/",vmeoi,"_extrap_",output_name,"_",names(extrapolation_rasters)[x],".tif"),
     overwrite = TRUE
   )
   return(layer)
@@ -209,7 +209,7 @@ extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
 # Save both together
 extrap_exdet_maps[[1]] + extrap_exdet_maps[[2]] + extrap_mic_maps[[1]] + extrap_mic_maps[[2]] +
   patchwork::plot_layout(axes = "collect")
-ggsave(paste0(output_folder,"/",vmeoi,"_extrapolations_",output_name,".jpg"), 
+ggsave(paste0(output_folder,"/Extrapolations/",vmeoi,"_extrapolations_",output_name,".jpg"), 
   width = 10, height = 10, dpi = 300)
 
 
@@ -241,7 +241,7 @@ extrap_analysis <- lapply(list(vme_pts_pa, vme_pts_pres), function(dataset) {
   set_names("PA", "PresenceOnly") %>%
   bind_rows(.id = "InputData")
 
-write_csv(extrap_analysis, paste0(output_folder,"/",vmeoi,"_extrapolation_percentages_",output_name,".csv"))
+write_csv(extrap_analysis, paste0(output_folder,"/Extrapolations/",vmeoi,"_extrapolation_percentages_",output_name,".csv"))
 
 
 # Overlay univariate extrapolation layer with MaxClass map layer for both PA and PresenceOnly datasets ----
