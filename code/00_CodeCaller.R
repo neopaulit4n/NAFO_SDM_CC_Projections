@@ -59,6 +59,9 @@ for (vmeoi in "black_corals") {  # vme_all
     cat(paste("Computing extrapolations for",names(unlist(list(baseline = vme_layers_baseline, unlist(vme_layers_proj))))[i]))
     source("code/05_Extrapolation.R")
   }  
+
+  # Extrapolations for P1-4 for SSP 2-4.5 (specific figures within body of text)
+  source("code/06_Extrapolations_SSP245.R")
   
   # Maps per VME group
   source("code/04_Mapping.R")

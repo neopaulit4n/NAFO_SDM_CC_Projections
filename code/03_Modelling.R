@@ -82,14 +82,14 @@ for (i in 1:10) {
     arrange(desc(MeanDecreaseGini))
 
   # Fold partial dependence data ----
-  # cat("  Extracting partial dependence data\n")
-  # fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
-  #   pdp::partial(fold_model[[i]], 
-  #     pred.var = var,
-  #     plot = FALSE) %>%
-  #     mutate(Variable = colnames(.)[1]) %>%
-  #     rename(value = var)
-  # })
+  cat("  Extracting partial dependence data\n")
+  fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
+    pdp::partial(fold_model[[i]], 
+      pred.var = var,
+      plot = FALSE) %>%
+      mutate(Variable = colnames(.)[1]) %>%
+      rename(value = var)
+  })
   
   cat("  Generating spatial predictions under baseline conditions\n")
   # Spatial predictions for this fold ----
@@ -195,23 +195,23 @@ ggsave(filename = paste0(output_folder,"/",vmeoi,"_plot_rf_VarImp.jpg"),
   width = 6, height = 4)
 
 # Extract partial dependence plots for each variable ----
-# fold_partial_df <- lapply(fold_partialdep, function(fold) {
-#   bind_rows(fold)
-# }) %>%
-#   bind_rows(.id = "Fold") %>%
-#   arrange(Fold, Variable, value) %>%
-#   mutate(Fold = as.factor(as.numeric(Fold)),
-#          Variable = factor(Variable, levels = rev(levels(fold_var_imp_df$Variable))))
-# write.csv(fold_partial_df, file = paste0(output_folder,"/",vmeoi,"_table_rf_PartialDep.csv"), row.names = FALSE)
+fold_partial_df <- lapply(fold_partialdep, function(fold) {
+  bind_rows(fold)
+}) %>%
+  bind_rows(.id = "Fold") %>%
+  arrange(Fold, Variable, value) %>%
+  mutate(Fold = as.factor(as.numeric(Fold)),
+         Variable = factor(Variable, levels = rev(levels(fold_var_imp_df$Variable))))
+write.csv(fold_partial_df, file = paste0(output_folder,"/",vmeoi,"_table_rf_PartialDep.csv"), row.names = FALSE)
 
-# ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
-#   geom_line() +
-#   facet_wrap(~ Variable, scales = "free_x") +
-#   theme_bw() +
-#   labs(x = "Predictor Value", y = "Partial Dependence")
+ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
+  geom_line() +
+  facet_wrap(~ Variable, scales = "free_x") +
+  theme_bw() +
+  labs(x = "Predictor Value", y = "Partial Dependence")
 
-# ggsave(filename = paste0(output_folder,"/",vmeoi,"_plot_rf_PartialDep.jpg"),
-#   width = 10, height = 8)
+ggsave(filename = paste0(output_folder,"/",vmeoi,"_plot_rf_PartialDep.jpg"),
+  width = 10, height = 8)
 
 # Output non-reclassed/non-thresholded presence probability rasters ----
 
