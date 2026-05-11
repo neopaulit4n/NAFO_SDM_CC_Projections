@@ -1,7 +1,8 @@
-
 # Load mapping layers ----
 
-# # Load NOAA bathymetry layer for contours
+if (!dir.exists(paste0(output_folder,"/ModellingMaps"))) dir.create(paste0(output_folder,"/ModellingMaps"))
+
+# Load NOAA bathymetry layer for contours
 bathy_noaa <- readRDS("data/raw/Mapping_Layers/bathy_noaa.rds")
 
 # # Load Canadian EEZ boundary from shapefile
@@ -56,7 +57,6 @@ bathy_noaa <- readRDS("data/raw/Mapping_Layers/bathy_noaa.rds")
 #        fill = "Prediction", x = "Longitude", y = "Latitude")
 
 # Grid of plots with periods as columns and SSPs as rows for each metric ----
-
 metric_names <- c("MaxClass", "MaxClassF", "MaxClassAvgProb", "CombConf", "CVSum", "rawPresenceProb", "rawAbsenceProb")
 
 ## Read in rasters ----
@@ -174,7 +174,7 @@ rf_pred_maps <- lapply(metric_names, function(metric) {
     scale_x_continuous(expand = c(0,0)) +
     scale_y_continuous(expand = c(0,0))
 
-  ggsave(paste0(output_folder,"/",vmeoi,"_proj_",metric,"_facet.jpg"), p,
+  ggsave(paste0(output_folder,"/ModellingMaps/",vmeoi,"_proj_",metric,"_facet.jpg"), p,
     width = 10, height = 10, dpi = 300)
 
   p_baseline <- ggplot() +
@@ -195,7 +195,7 @@ rf_pred_maps <- lapply(metric_names, function(metric) {
     scale_x_continuous(expand = c(0,0)) +
     scale_y_continuous(expand = c(0,0))
 
-  ggsave(paste0(output_folder,"/",vmeoi,"_baseline_",metric,".jpg"), p_baseline,
+  ggsave(paste0(output_folder,"/ModellingMaps/",vmeoi,"_baseline_",metric,".jpg"), p_baseline,
     width = 10, height = 10, dpi = 300)
 })
 

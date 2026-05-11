@@ -300,7 +300,7 @@ for (i in 1:length(rf_pred_foldstack_proj)) {
 
   ### Most frequent class (0/1)
   rf_res_proj_MaxClass <- terra::modal(rf_pred_foldstack_proj[[i]], freq = FALSE)
-  rf_res_proj_MaxClass_reclass <- terra::as.bool(rf_res_proj_MaxClass)
+  # rf_res_proj_MaxClass_reclass <- terra::as.bool(rf_res_proj_MaxClass)
 
   ### Frequency of most frequent class (fraction of runs)
   # rf_res_MaxClassF <- terra::modal(rf_pred_foldstack, freq = TRUE) / 10  # old method - doesn't work

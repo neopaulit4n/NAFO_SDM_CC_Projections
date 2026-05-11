@@ -14,8 +14,7 @@ vme_df <- filter(cmip_comb_df, VME_Group == vmeoi) %>%
   select(all_of(c("VME_P_A", vme_vars)))
 
 # Preliminary RF model formula ----  
-rf_prelim_form <- as.formula(paste("VME_P_A ~", 
-                                  paste(vme_vars, collapse = " + ")))
+rf_prelim_form <- as.formula(paste("VME_P_A ~", paste(vme_vars, collapse = " + ")))
 
 # Preliminary RF model run (save/load) ----
 cat("Running preliminary RF model...\n")
@@ -222,9 +221,6 @@ select_vme_vars <- function(pred_var_df, vmeoi, cor_threshold = 0.7, verbose = F
 
 vme_var_selection <- select_vme_vars(vme_df[,-1], vmeoi = vmeoi, cor_threshold = 0.7, verbose = FALSE)
 selected_vme_vars <- vme_var_selection$selected_vars
-
-# Remove BT_min to test extrapolation and models without it (biggest cause of extrapolation)
-# selected_vme_vars <- selected_vme_vars[!selected_vme_vars %in% "BT_min"]
 
 #### Update VIF table with this iteration's results
 vif_df_i <- data.frame(

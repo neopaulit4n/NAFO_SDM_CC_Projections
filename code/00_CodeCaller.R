@@ -4,7 +4,7 @@
 # Load data ----
 source("code/01_LoadData.R")
 
-vmeoi <- "black_corals"
+vmeoi <- "small_gorgonians"
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----
 fold_metrics_summary_df <- data.frame(
@@ -16,7 +16,7 @@ fold_metrics_summary_df <- data.frame(
 
 # Loop through each combination of VME group, period, SSP, and subsampling option ----
 loop_seed <- 412
-for (vmeoi in "black_corals") {  # vme_all
+for (vmeoi in "small_gorgonians") {  # vme_all
 
   # Create VMEOI directory if it doesn't exist already
   output_folder <- paste0("output/",vmeoi)  
@@ -56,7 +56,7 @@ for (vmeoi in "black_corals") {  # vme_all
   for (i in 1:length(unlist(list(baseline = vme_layers_baseline, unlist(vme_layers_proj))))) {
     prediction_grid <- unlist(list(baseline = vme_layers_baseline, unlist(vme_layers_proj)))[[i]]
     output_name <- names(unlist(list(baseline = vme_layers_baseline, unlist(vme_layers_proj))))[i]
-    cat(paste("Computing extrapolations for",names(unlist(list(baseline = vme_layers_baseline, unlist(vme_layers_proj))))[i]))
+    cat(paste("Computing extrapolations for",names(unlist(list(baseline = vme_layers_baseline, unlist(vme_layers_proj))))[i],"\n"))
     source("code/05_Extrapolation.R")
   }  
 

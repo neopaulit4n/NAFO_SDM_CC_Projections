@@ -7,7 +7,7 @@ extrapolation_rasters_mask <- lapply(
 ) |>
   set_names(
     tools::file_path_sans_ext(
-      gsub("black_corals_extrap_","",list.files(path = paste0(output_folder, "/Extrapolations/rasters"), pattern = "baseline.+?tif$|2-4.5.+?tif$")))
+      gsub(paste0(vmeoi,"_extrap_"),"",list.files(path = paste0(output_folder, "/Extrapolations/rasters"), pattern = "baseline.+?tif$|2-4.5.+?tif$")))
 )
 
 # presenceonly/PA
@@ -95,10 +95,10 @@ library(patchwork)
 p$PA[[1]] + p$PA[[3]] + p$PA[[5]] + p$PA[[7]] + p$PA[[9]] +
   p$PA[[2]] + p$PA[[4]] + p$PA[[6]] + p$PA[[8]] + p$PA[[10]] +
   patchwork::plot_layout(axes = "collect", axis_titles = "collect", nrow = 2)
-ggsave(paste0(output_folder,"/Extrapolations/black_corals_extrapolations_SSP2-4.5_PA.jpg"), width = 22, height = 11, dpi = 500)
+ggsave(paste0(output_folder,"/Extrapolations/",vmeoi,"_extrapolations_SSP2-4.5_PA.jpg"), width = 22, height = 11, dpi = 500)
 
 p$PresenceOnly[[1]] + p$PresenceOnly[[3]] + p$PresenceOnly[[5]] + p$PresenceOnly[[7]] + p$PresenceOnly[[9]] +
   p$PresenceOnly[[2]] + p$PresenceOnly[[4]] + p$PresenceOnly[[6]] + p$PresenceOnly[[8]] + p$PresenceOnly[[10]] +
   patchwork::plot_layout(axes = "collect", axis_titles = "collect", nrow = 2)
-ggsave(paste0(output_folder,"/Extrapolations/black_corals_extrapolations_SSP2-4.5_PresenceOnly.jpg"), width = 22, height = 11, dpi = 500)
+ggsave(paste0(output_folder,"/Extrapolations/",vmeoi,"_extrapolations_SSP2-4.5_PresenceOnly.jpg"), width = 22, height = 11, dpi = 500)
 

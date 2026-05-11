@@ -30,7 +30,7 @@ frc_baseline <- bind_cols(
   terra::as.data.frame(vme_layers_baseline),
   terra::as.data.frame(rf_res_presprob_baseline, xy = TRUE)
 ) |>
-  # pivot_longer(-c(mean, x, y), names_to = "Variable", values_to = "Value") |>
+  pivot_longer(-c(mean, x, y), names_to = "Variable", values_to = "Value") |>  # sometimes pivot, sometimes not
   # Join NAFO divisions labels to points
   sf::st_as_sf(coords = c("x","y"), crs = 4326) |>
   sf::st_join(nafo_div)

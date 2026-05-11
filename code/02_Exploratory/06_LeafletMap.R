@@ -22,17 +22,17 @@ vme_closures <- sf::read_sf("data/raw/Mapping_Layers/NAFO_VME_closures_2022/NAFO
 
 # VME presence/absence points
 pa <- read_csv("data/cleaned/VME_group_PA_df.csv", show_col_types = FALSE) %>%
-  filter(VME_Group == "black_corals") %>%
+  filter(VME_Group == vmeoi) %>%
   sf::st_as_sf(coords = c("Start_Long_DD", "Start_Lat_DD"))
 pres <- filter(pa, VME_P_A == 1)
 abs <- filter(pa, VME_P_A == 0)
-cross_icon <- makeIcon(
-  iconUrl = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cline x1='0' y1='0' x2='12' y2='12' stroke='black' stroke-width='2'/%3E%3Cline x1='12' y1='0' x2='0' y2='12' stroke='black' stroke-width='2'/%3E%3C/svg%3E",
-  iconWidth  = 12,
-  iconHeight = 12,
-  iconAnchorX = 6,  # Centre the icon on the point
-  iconAnchorY = 6
-)
+# cross_icon <- makeIcon(
+#   iconUrl = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cline x1='0' y1='0' x2='12' y2='12' stroke='black' stroke-width='2'/%3E%3Cline x1='12' y1='0' x2='0' y2='12' stroke='black' stroke-width='2'/%3E%3C/svg%3E",
+#   iconWidth  = 12,
+#   iconHeight = 12,
+#   iconAnchorX = 6,  # Centre the icon on the point
+#   iconAnchorY = 6
+# )
 
 # Bathymetry/terrain layers
 bathy_layers <- list.files(path = "data/raw/BNAM_Data_From_Cam/Bathymetry_Terrain_From_NAFO_SharePoint", 

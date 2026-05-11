@@ -50,6 +50,9 @@ extrapolation_rasters <- lapply(extrapolation_area, function(extrap) {
 # Extrapolation layer maps ----
 
 ## Prepare rasters for mapping ----
+if (!dir.exists(paste0(output_folder,"/Extrapolations"))) dir.create(paste0(output_folder,"/Extrapolations"))
+if (!dir.exists(paste0(output_folder,"/Extrapolations/rasters"))) dir.create(paste0(output_folder,"/Extrapolations/rasters"))
+
 extrapolation_rasters_mask <- lapply(1:length(extrapolation_rasters), function(x) {
   layer <- terra::mask(extrapolation_rasters[[x]], !is.na(extrapolation_rasters[[x]]))
   if (x %in% grep("mic", names(extrapolation_rasters))) {
@@ -65,7 +68,7 @@ extrapolation_rasters_mask <- lapply(1:length(extrapolation_rasters), function(x
 }) %>%
   set_names(names(extrapolation_rasters))
 
-if (output_name == "P3.3-7.0") {
+if (output_name == "P3.3-7.0" & vmeoi == "black_corals") {
   # Fixing combinatorial layers for P3 SSP 3-7.0 ----
   replace_layer <- terra::merge(extrapolation_rasters_mask[[8]], extrapolation_rasters_mask[[10]])
   comp_layer <- cmip_layers_proj[[1]][[1]][[1]] %>%
