@@ -60,7 +60,7 @@ cor_df <- cor(
   pivot_longer(everything(), names_to = "var2", values_to = "cor") %>%
   mutate(var1 = rep(vme_vars, each = length(vme_vars))) %>%
   select(var1, var2, cor)
-# write.csv(cor_df, file = paste0(output_folder,"/",vmeoi,"_table_cor_baseline_AllCMIPVars.csv"), row.names = FALSE)
+write.csv(cor_df, file = paste0(output_folder,"/",vmeoi,"_table_cor_baseline_AllCMIPVars.csv"), row.names = FALSE)
 
 # plot_cor_allvars <- ggplot(data = cor_df, aes(x = var1, y = var2, fill = cor)) +
 #   geom_tile(colour = "black") +
@@ -222,7 +222,7 @@ select_vme_vars <- function(pred_var_df, vmeoi, cor_threshold = 0.7, verbose = F
 vme_var_selection <- select_vme_vars(vme_df[,-1], vmeoi = vmeoi, cor_threshold = 0.7, verbose = FALSE)
 selected_vme_vars <- vme_var_selection$selected_vars
 
-#### Update VIF table with this iteration's results
+# Update VIF table with this iteration's results ----
 vif_df_i <- data.frame(
   vmeoi = vmeoi, 
   variable = vme_var_selection$selected_vars, 
@@ -230,7 +230,7 @@ vif_df_i <- data.frame(
   final_cor_thresh = vme_var_selection$final_cor_threshold
 )
 
-# Re-append VME terrain variable(s) if not selected
+# Re-append VME terrain variable(s) if not selected ----
 if (!vme_terrain_vars %in% selected_vme_vars) {
   selected_vme_vars <- c(vme_terrain_vars, selected_vme_vars)
   vif_df_i <- rbind(
