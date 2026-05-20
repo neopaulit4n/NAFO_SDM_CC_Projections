@@ -1,7 +1,7 @@
 # Model building
 
 cat("Building RF model and extracting performance metrics across folds...\n")
-# Create the 10 folds ---*
+# Create the 10 folds ----
 set.seed(loop_seed)
 folds <- caret::createFolds(vme_df$VME_P_A, k = 10, returnTrain = TRUE)
 

@@ -255,7 +255,6 @@ vme_df <- vme_df %>%
 selected_cmip_vars <- selected_vme_vars[selected_vme_vars %in% names(cmip_layers)]
 var_select_df[var_select_df$vmeoi == vmeoi, selected_cmip_vars] <- 1
 var_select_df[var_select_df$vmeoi == vmeoi, setdiff(names(cmip_layers), selected_cmip_vars)] <- 0
-# selected_vme_vars <- c(vme_terrain_vars, cmip_vars)  # test without variable selection
 
 # Prepare variable layer rasters for spatial predictions ----
 cat("Preparing variable raster layers for spatial predictions...\n")

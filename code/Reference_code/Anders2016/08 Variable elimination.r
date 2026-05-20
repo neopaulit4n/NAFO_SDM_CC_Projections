@@ -8,12 +8,12 @@
 #################
 
 # Import libraries
-library(raster)
+# library(raster)
 # library(rgdal)
 # library(maptools)
-library(randomForest)
-library(pROC)
-library(tcltk2)
+# library(randomForest)
+# library(pROC)
+# library(tcltk2)
 
 # Set some directories
 setwd("C:/Users/Anders/Dropbox/SDM course/")

@@ -1,10 +1,10 @@
 #Load packages and library files
-library(raster)
-library(rgdal)
-library(maptools)
-library(randomForest)
-library(ranger)
-library(pROC)
+# library(raster)
+# library(rgdal)
+# library(maptools)
+# library(randomForest)
+# library(ranger)
+# library(pROC)
 
 ######################################################################
 ###### STEP 0: IMPORT THE RESPONSE AND ENVIRONMENTAL DATA ############
@@ -372,7 +372,7 @@ head(slopedata)
 
 pdf("PartPlot_Slope.pdf", family="Times", width=5, height=5)
 
-plot(slopedata$x, slopedata$transformy, type="n", xlab="Slope (°)", ylab="Presence Probability", cex.axis=1, cex.lab =1.2)
+plot(slopedata$x, slopedata$transformy, type="n", xlab="Slope (ï¿½)", ylab="Presence Probability", cex.axis=1, cex.lab =1.2)
 lines(slopedata$x, slopedata$transformy, col="black",lwd=3)
 par(new=F)
 
