@@ -67,7 +67,10 @@ for (vmeoi in "small_gorgonians") {  # vme_all
   source("code/04_Mapping.R")
 
   ## Output functional response curves ----
-  source("code/02_Exploratory/07_FunctionalResponseCurves.R")
+  source("code/09_FunctionalResponseCurves.R")
+
+  ## Environmental variable layer maps ----
+  source("code/08_OutputCleanedEnvVarRasters.R")
 
   ## Re-run modelling without variable selection (all CMIP, still only top selected terrain variable) ----
   ### Prepare VME group dataframe ----
