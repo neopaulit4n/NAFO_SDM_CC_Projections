@@ -30,17 +30,17 @@ frc_baseline <- bind_cols(
   terra::as.data.frame(vme_layers_baseline),
   terra::as.data.frame(rf_res_presprob_baseline, xy = TRUE)
 ) |>
-  pivot_longer(-c(mean, x, y), names_to = "Variable", values_to = "Value") |>  # sometimes pivot, sometimes not
+  # pivot_longer(-c(mean, x, y), names_to = "Variable", values_to = "Value") |>  # sometimes pivot, sometimes not
   # Join NAFO divisions labels to points
   sf::st_as_sf(coords = c("x","y"), crs = 4326) |>
   sf::st_join(nafo_div)
 
-ggplot(data = frc_baseline, aes(x = Value, y = mean)) +
-  facet_wrap(~ Variable, scales = "free") +
-  geom_point() +
-  # geom_smooth(method = "loess", se = FALSE) +  # takes a long time
-  geom_smooth() +  # uses GAM by default
-  theme_classic()
+# ggplot(data = frc_baseline, aes(x = Value, y = mean)) +
+#   facet_wrap(~ Variable, scales = "free") +
+#   geom_point() +
+#   # geom_smooth(method = "loess", se = FALSE) +  # takes a long time
+#   geom_smooth() +  # uses GAM by default
+#   theme_classic()
 
 # frc_proj <- lapply(1:length(rf_res_presprob_proj), function(x) {
 #   pred_df <- unlist(vme_layers_proj, recursive = FALSE)[[1]] |>
@@ -68,7 +68,7 @@ ggplot(data = frc_baseline, aes(x = Value, y = mean)) +
 #   ggsave(paste0(output_folder,"/FunctionalResponseCurves/",vmeoi,"_FunctionalResponseCurveGAM_",names(frc_list)[x],".jpg"))
 # })
 
-frc_df <- lapply(1:4, function(poi) {
+frc_list <- lapply(1:4, function(poi) {
   pred_df <- vme_layers_proj[[poi]]
   pred_df <- lapply(1:4, function(sspoi) {
     terra::as.data.frame(pred_df[[sspoi]]) |>
@@ -95,11 +95,11 @@ frc_df <- lapply(1:4, function(poi) {
   # select(-geometry) |>
   # pivot_longer(-c(mean, SSP, Period, Division), names_to = "Variable", values_to = "Value")
 
-frc_df[[5]] <- list(frc_baseline, frc_baseline, frc_baseline, frc_baseline) |>
+frc_list[[5]] <- list(frc_baseline, frc_baseline, frc_baseline, frc_baseline) |>
   set_names(ssp_all)
-names(frc_df) <- c(period_all, "Reference")
+names(frc_list) <- c(period_all, "Reference")
 
-frc_df <- lapply(frc_df, bind_rows, .id = "SSP") |>
+frc_df <- lapply(frc_list, bind_rows, .id = "SSP") |>
   bind_rows(.id = "Period") |>
   select(-geometry) |>
   pivot_longer(-c(mean, SSP, Period, Division), names_to = "Variable", values_to = "Value")
@@ -120,7 +120,7 @@ ggplot(frc_df, aes(x = Value, y = mean, colour = Period)) +
   theme_bw() +
   labs(y = "Mean predicted presence probability")
 ggsave(paste0(output_folder,"/",vmeoi,"_FunctionalResponseCurveGAM.jpg"),
-  width = 12, height = 8, dpi = 500)
+  width = 12, height = 8, dpi = 300)
 
 # Plots with points coloured by NAFO division ----
 z <- filter(frc_df, Period == "Reference", SSP == "1-2.6")
@@ -136,4 +136,4 @@ ggplot(z, aes(x = Value, y = mean)) +
   labs(y = "Mean predicted presence probability", title = "Reference") +
   guides(colour = guide_legend(override.aes = list(alpha = 1)))
 ggsave(paste0(output_folder,"/",vmeoi,"_FunctionalResponseCurveGAM_ReferencePts.jpg"),
-  width = 12, height = 8, dpi = 500)
+  width = 12, height = 8, dpi = 300)

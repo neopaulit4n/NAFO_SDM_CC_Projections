@@ -66,6 +66,9 @@ for (vmeoi in "small_gorgonians") {  # vme_all
   ## Maps per VME group ----
   source("code/04_Mapping.R")
 
+  ## Output functional response curves ----
+  source("code/02_Exploratory/07_FunctionalResponseCurves.R")
+
   ## Re-run modelling without variable selection (all CMIP, still only top selected terrain variable) ----
   ### Prepare VME group dataframe ----
   vme_terrain_vars <- filter(terrain_topvars, VME_Group == vmeoi) %>%

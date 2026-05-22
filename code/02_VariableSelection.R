@@ -17,14 +17,14 @@ vme_df <- filter(cmip_comb_df, VME_Group == vmeoi) %>%
 rf_prelim_form <- as.formula(paste("VME_P_A ~", paste(vme_vars, collapse = " + ")))
 
 # Preliminary RF model run (save/load) ----
-cat("Running preliminary RF model...\n")
+cat("Running preliminary RF model\n")
 set.seed(loop_seed)
 rf_prelim <- randomForest::randomForest(formula = rf_prelim_form,
                                         data = vme_df,
                                         importance = TRUE)
 
 # Extract variable importance metrics ----
-cat("Extracting preliminary RF model variable importance metrics...\n")
+cat("Extracting preliminary RF model variable importance metrics\n")
 rf_prelim_imp <- as.data.frame(randomForest::importance(rf_prelim)) %>%
   rownames_to_column(var = "Variable") %>%
   arrange(desc(MeanDecreaseGini))
@@ -51,7 +51,7 @@ ggsave(plot_rf_prelim_var_imp,
 # If values are > 10, need to recompute Spearman correlation at lower threshold 
 #   (increments of 0.05) and re-run variable selection until all variables achieve VIF < 10.
 
-cat("Calculating variable correlations...\n")
+cat("Calculating variable correlations\n")
 cor_df <- cor(
   vme_df[, vme_vars, drop = FALSE], 
   method = "spearman",
@@ -80,7 +80,7 @@ write.csv(cor_df, file = paste0(output_folder,"/",vmeoi,"_table_cor_baseline_All
 #   width = 8, height = 6)
 
 # Remove correlated variables based on importance ranking and VIF values ----
-cat("Selecting variables...\n")
+cat("Selecting variables\n")
 select_vme_vars <- function(pred_var_df, vmeoi, cor_threshold = 0.7, verbose = FALSE) {
   
   # cat("\n==============================\n")
@@ -257,7 +257,7 @@ var_select_df[var_select_df$vmeoi == vmeoi, selected_cmip_vars] <- 1
 var_select_df[var_select_df$vmeoi == vmeoi, setdiff(names(cmip_layers), selected_cmip_vars)] <- 0
 
 # Prepare variable layer rasters for spatial predictions ----
-cat("Preparing variable raster layers for spatial predictions...\n")
+cat("Preparing variable raster layers for spatial predictions\n")
 vme_layers_baseline <- c(bathy_layers[vme_terrain_vars], compact(cmip_layers[selected_vme_vars])) %>%
   terra::rast(.)
 
