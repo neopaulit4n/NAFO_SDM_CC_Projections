@@ -72,6 +72,9 @@ for (vmeoi in "small_gorgonians") {  # vme_all
   ## Environmental variable layer maps ----
   source("code/08_OutputCleanedEnvVarRasters.R")
 
+  ## Correlation matrix plots + correlation differences ----
+  source("code/02_Exploratory/05_VarCorrTimeSeries.R")
+
   ## Re-run modelling without variable selection (all CMIP, still only top selected terrain variable) ----
   ### Prepare VME group dataframe ----
   vme_terrain_vars <- filter(terrain_topvars, VME_Group == vmeoi) %>%

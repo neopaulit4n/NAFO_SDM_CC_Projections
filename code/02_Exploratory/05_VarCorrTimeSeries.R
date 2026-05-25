@@ -5,9 +5,12 @@
 # Examples I see for ADF are for only one variable time series, not correlations between variables
 
 # Create directories ----
+if (!dir.exists(paste0(output_folder,"/VarCorrelations"))) dir.create(paste0(output_folder,"/VarCorrelations"))
 if (!dir.exists(paste0(output_folder,"/VarCorrelations/01_InputDataframes"))) dir.create(paste0(output_folder,"/VarCorrelations/01_InputDataframes"))
 if (!dir.exists(paste0(output_folder,"/VarCorrelations/02_CorMat"))) dir.create(paste0(output_folder,"/VarCorrelations/02_CorMat"))
 if (!dir.exists(paste0(output_folder,"/VarCorrelations/03_CorPlots"))) dir.create(paste0(output_folder,"/VarCorrelations/03_CorPlots"))
+if (!dir.exists(paste0(output_folder,"/VarCorrelations/04_CorDiffMat"))) dir.create(paste0(output_folder,"/VarCorrelations/04_CorDiffMat"))
+if (!dir.exists(paste0(output_folder,"/VarCorrelations/05_CorDiffPlots"))) dir.create(paste0(output_folder,"/VarCorrelations/05_CorDiffPlots"))
 
 # Plot correlations between variable pairs over time
 
@@ -17,8 +20,9 @@ if (!dir.exists(paste0(output_folder,"/VarCorrelations/03_CorPlots"))) dir.creat
 #   set_names(names(vme_layers_baseline))
 # baseline_layers <- c(baseline_layers)
 
-baseline_layers <- c(cmip_layers, CHNETBL3 = bathy_layers$CHNETBL3) |>
+baseline_layers <- c(cmip_layers, terrain = bathy_layers[[vme_terrain_vars]]) |>
   terra::rast()
+names(baseline_layers) <- c(names(cmip_layers), vme_terrain_vars)
 
 # projection_layers <- unlist(cmip_layers_future, recursive = FALSE)
 # projection_layers <- projection_layers[grep(paste(selected_vme_vars, collapse = "|"), names(projection_layers))]
@@ -37,7 +41,6 @@ all_layers <- list()
 all_layers[[1]] <- baseline_layers
 names(all_layers) <- "baseline"
 all_layers <- c(all_layers, projection_layers)
-
 all_layers_df <- lapply(all_layers, function(x) terra::as.data.frame(x) |> drop_na())
 
 # Output base dataframes used to calculate correlations between variables
@@ -49,7 +52,7 @@ lapply(1:length(all_layers_df), function(df) {
 all_layers_cor <- lapply(1:length(all_layers_df), function(layer) {
   cor_mat <- cor(all_layers_df[[layer]], method = "spearman", use = "complete.obs") |>
     as.data.frame()
-  # write.csv(cor_mat, paste0(output_folder,"/VarCorrelations/02_CorMat/FullArea_",names(all_layers_df)[layer],"_cor.csv"))
+  write.csv(cor_mat, paste0(output_folder,"/VarCorrelations/02_CorMat/FullArea_",names(all_layers_df)[layer],"_cor.csv"))
   cor_long <- as.data.frame(cor_mat) %>%
     rownames_to_column(var = "var1") %>%
     pivot_longer(-var1, names_to = "var2", values_to = "cor")
@@ -111,7 +114,7 @@ lapply(1:length(all_layers_overlap), function(df) {
 all_layers_overlap_cor <- lapply(1:length(all_layers_overlap), function(layer) {
   cor_mat <- cor(all_layers_overlap[[layer]], method = "spearman", use = "complete.obs") |>
     as.data.frame()
-  # write.csv(cor_mat, paste0(output_folder,"/VarCorrelations/02_CorMat/OverlapVME_",names(all_layers_overlap)[layer],"_cor.csv"))
+  write.csv(cor_mat, paste0(output_folder,"/VarCorrelations/02_CorMat/OverlapVME_",names(all_layers_overlap)[layer],"_cor.csv"))
   cor_long <- as.data.frame(cor_mat) %>%
     rownames_to_column(var = "var1") %>%
     pivot_longer(-var1, names_to = "var2", values_to = "cor")
