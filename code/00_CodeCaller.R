@@ -15,8 +15,13 @@ fold_metrics_summary_df <- data.frame(
 )
 
 # Loop through each combination of VME group, period, SSP, and subsampling option ----
-loop_seed <- 412
-for (vmeoi in "small_gorgonians") {  # vme_all
+loop_seed <- switch(vmeoi,
+  "black_corals" = 412,
+  "small_gorgonians" = 412,
+  "large_gorgonians" = 413
+)
+
+# for (vmeoi in "small_gorgonians") {  # vme_all
 
   ## Create VMEOI directory if it doesn't exist already ----
   output_folder <- paste0("output/",vmeoi)  
@@ -88,8 +93,7 @@ for (vmeoi in "small_gorgonians") {  # vme_all
   ### Run modelling ----
   source("code/07_ModellingNoVarSel.R")
   write_csv(fold_metrics_summary_df, paste0(output_folder,"/",vmeoi,"_summary_fold_metrics_novarsel.csv"))
-
-  # loop_seed <- loop_seed + 1     
-}
+    
+# }
 
 
