@@ -1,5 +1,31 @@
 # Create pretty table replicating table 5 from black corals
-df1 <- bind_cols(z,zz) |>
+
+# Extract raster values for PA for projected CMIP layers ----
+suppressMessages(cmip_pred_proj_df <- lapply(unlist(cmip_layers_proj), function(layer) {
+  terra::extract(layer, 
+    select(resp_df, Start_Long_DD, Start_Lat_DD)) %>%
+  select(-ID)
+}) %>%
+  bind_cols() %>%
+  set_names(names(unlist(cmip_layers_proj)))
+)
+
+# Extract rows that belong to the VMEOI ----
+vme_rows <- rowid_to_column(resp_df, "rowid") |>
+  filter(VME_Group == vmeoi) |>
+  pull(rowid)
+
+# Get baseline and projected dfs prepped for merging ----
+z <- cmip_pred_df |>
+  select(all_of(selected_cmip_vars)) |>
+  # mutate(period = "baseline")
+  rename_with(~ paste0("P0.0-0.0.", .x))
+zz <- cmip_pred_proj_df |>
+  # select(VME_Group:ssp, all_of(selected_cmip_vars))
+  select(all_of(colnames(cmip_pred_proj_df)[grepl(paste(selected_cmip_vars, collapse = '|'), colnames(cmip_pred_proj_df))]))
+
+# Merge baseline and projected dfs, subset by VMEOI rows, and pivot by periods and SSPs ----
+df1 <- bind_cols(z,zz)[vme_rows,] |>
   pivot_longer(
     cols = matches("^P\\d"),
     names_to = c("period", "ssp", ".value"),
@@ -11,6 +37,7 @@ df1 <- bind_cols(z,zz) |>
   ) |>
   pivot_longer(cols = -c("period","ssp"), names_to = "variable", values_to = "value")
 
+# Calculate Tukey HSD across each SSP for each variable to obtain which values to bold in table ----
 df2 <- lapply(selected_cmip_vars, function(var) {
   lapply(ssp_all, function(sspoi) {
     df <- filter(df1, ssp == sspoi, variable == var)
@@ -32,6 +59,7 @@ df2 <- lapply(selected_cmip_vars, function(var) {
 }) |>
   bind_rows()
 
+# Rejoin with df1 to append bold data ----
 df3 <- left_join(df1, df2, by = c("period", "ssp", "variable")) |>
   summarise(
     mean = mean(value, na.rm = TRUE), 
@@ -40,22 +68,23 @@ df3 <- left_join(df1, df2, by = c("period", "ssp", "variable")) |>
   ) |>
   mutate(bold = ifelse(is.na(bold), FALSE, bold))
 
+# Calculate ADF and append statistics ----
 df4 <- lapply(selected_cmip_vars, function(var) {
   lapply(ssp_all, function(sspoi) {
     df <- filter(df3, ssp %in% c("Reference", sspoi), variable == var)
     adf_res <- tseries::adf.test(df$mean, k = 0)
-    df$ADF = adf_res$statistic
-    df$Conclusion = ifelse(adf_res$p.value < 0.05, "Non-stationary", "Stationary")
+    df$ADF <- adf_res$statistic
+    df$Conclusion <- ifelse(adf_res$p.value < 0.05, "Stationary", "Non-stationary")
     return(df)
   }) |>
     bind_rows()
 }) |>
-  bind_rows() #|>
-  # mutate(ssp = ifelse(ssp == "Reference", NA, ssp)) |>
-  # fill(ssp, .direction = "up")
+  bind_rows()
 
+# urca::ur.df(df$mean, type = "trend", lags = 0)
+# forecast::ndiffs(df$mean, test = "adf", type = "trend")
 
-
+# Finalise table formatting for output prior to gt ----
 df <- df4 |>
   mutate(
     cell = sprintf(paste0("%.", 2, "f \u00b1 %.", 2, "f"), mean, sd),
@@ -77,12 +106,12 @@ df <- df4 |>
   mutate(
     var_clean = str_replace_all(variable, c(
       # Variables
+      "^BStr" = "Bottom Stress",      
       "^BS" = "Bottom Salinity",
       "^SSS" = "Sea Surface Salinity",
       "^BT" = "Bottom Temperature",
       "^SST" = "Sea Surface Temperature",
       "^BCS" = "Bottom Current Speed",
-      "^BStr" = "Bottom Stress",
       "^MLD_W" = "Winter Mixed Layer Depth",
       "^MLD_Sp" = "Spring Mixed Layer Depth",
       "^MLD_Su" = "Summer Mixed Layer Depth",
@@ -118,15 +147,12 @@ tbl <- df |>
   ) |>
   gt::sub_missing(missing_text = "") |>
   gt::cols_align(align = "center", columns = c("1993-2014","P1: 2020-2039","P2: 2040-2059","P3: 2060-2079","P4: 2080-2099")) |>
-  gt::cols_align(align = "left",   columns = SSP) |>
+  gt::cols_align(align = "left", columns = SSP) |>
   gt::fmt_markdown() |>  # applying bold
   gt::tab_options(
     table_body.hlines.style = "none",
     table_body.vlines.style = "none"
-  ) |>
-  flextable::as_flextable() |>
-  flextable::border_remove() |>
-  flextable::save_as_docx(path = paste0(output_folder,"/",vmeoi,"_ADFTukeyCMIPVarTable2.docx"))
+  )
 
 gt::gtsave(tbl, paste0(output_folder,"/",vmeoi,"_ADFTukeyCMIPVarTable.docx"))
 
