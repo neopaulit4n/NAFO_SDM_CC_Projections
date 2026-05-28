@@ -27,13 +27,6 @@ loop_seed <- switch(vmeoi,
   output_folder <- paste0("output/",vmeoi)  
   if (!dir.exists(output_folder)) dir.create(output_folder)
   if (!dir.exists(paste0(output_folder,"/rasters"))) dir.create(paste0(output_folder,"/rasters"))
-  
-  ## Table to save variable selection results ----
-  var_select_df <- expand_grid(vmeoi = vmeoi, poi = period_all, sspoi = ssp_all) %>%
-    arrange(vmeoi, poi, sspoi) %>%
-    # Add columns for CMIP variables
-    cbind(matrix(NA, nrow = nrow(.), ncol = length(cmip_vars))) %>%
-    set_names(c("vmeoi", "poi", "sspoi", cmip_vars))
 
   ## Table to save VIF values ----
   vif_df <- data.frame(vmeoi = character(),
@@ -75,7 +68,7 @@ loop_seed <- switch(vmeoi,
   source("code/09_FunctionalResponseCurves.R")
 
   ## Environmental variable layer maps ----
-  source("code/08_OutputCleanedEnvVarRasters.R")
+  source("code/08_SelVarsThreePlotComparison.R")
 
   ## Correlation matrix plots + correlation differences ----
   source("code/02_Exploratory/05_VarCorrTimeSeries.R")

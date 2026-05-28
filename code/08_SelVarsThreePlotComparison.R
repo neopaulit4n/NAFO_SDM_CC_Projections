@@ -1,11 +1,6 @@
-# Output environmental variable layers baseline and projected ----
+# Output three side-by-side plots for baseline/P1 SSP 1/P4 SSP 5 for VMEOI sel vars ----
 env_layers <- c(bathy_layers, cmip_layers, unlist(cmip_layers_proj))
 env_layer_names <- names(env_layers)
-# lapply(1:length(env_layers), function(layer) {
-#   terra::writeRaster(env_layers[[layer]], filename = paste0("output/env_vars_rasters/",env_layer_names[layer],".tif"))
-# })
-
-# Output three side-by-side plots for baseline/P1 SSP 1/P4 SSP 5 for VMEOI sel vars ----
 z <- grep(paste0(selected_cmip_vars, collapse = "|"), env_layer_names, value=TRUE)
 env_layers_subset <- lapply(selected_cmip_vars, function(var) {
   layers <- env_layers[grep(var, z, value=TRUE)]
@@ -25,7 +20,7 @@ get_cmocean_palette <- function(variable) {
     "SSS" = "haline",     # Sea surface salinity
     "BS" = "haline",     # Bottom salinity
     "MLD" = "deep",       # Mixed layer depth
-    "BCS" = "speed",      # Bottom water velocity
+    "BCS" = "speed",      # Bottom current speed
     "BStr" = "amp"        # Bottom stress
   )
   return(palette_map[[variable]])

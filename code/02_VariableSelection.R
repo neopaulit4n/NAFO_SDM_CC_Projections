@@ -251,11 +251,6 @@ vif_df <- rbind(vif_df, vif_df_i)
 vme_df <- vme_df %>%
   select(all_of(c("VME_P_A", selected_vme_vars)))
 
-# Create table of variable selection results for this iteration ----
-selected_cmip_vars <- selected_vme_vars[selected_vme_vars %in% names(cmip_layers)]
-var_select_df[var_select_df$vmeoi == vmeoi, selected_cmip_vars] <- 1
-var_select_df[var_select_df$vmeoi == vmeoi, setdiff(names(cmip_layers), selected_cmip_vars)] <- 0
-
 # Prepare variable layer rasters for spatial predictions ----
 cat("Preparing variable raster layers for spatial predictions\n")
 vme_layers_baseline <- c(bathy_layers[vme_terrain_vars], compact(cmip_layers[selected_vme_vars])) %>%
