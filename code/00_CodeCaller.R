@@ -80,6 +80,9 @@ loop_seed <- switch(vmeoi,
   ## Correlation matrix plots + correlation differences ----
   source("code/02_Exploratory/05_VarCorrTimeSeries.R")
 
+  ## Selected CMIP vars ADF + Tukey table ----
+  source("code/10_CMIPADFTable.R")
+
   ## Re-run modelling without variable selection (all CMIP, still only top selected terrain variable) ----
   ### Prepare VME group dataframe ----
   vme_terrain_vars <- filter(terrain_topvars, VME_Group == vmeoi) %>%
