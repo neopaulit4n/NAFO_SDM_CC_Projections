@@ -26,7 +26,7 @@ loop_seed <- switch(vmeoi,
   ## Create VMEOI directory if it doesn't exist already ----
   output_folder <- paste0("output/",vmeoi)  
   if (!dir.exists(output_folder)) dir.create(output_folder)
-  if (!dir.exists(paste0(output_folder,"/rasters"))) dir.create(paste0(output_folder,"/rasters"))
+  if (!dir.exists(paste0(output_folder,"/RFModelRasters"))) dir.create(paste0(output_folder,"/RFModelRasters"))
 
   ## Table to save VIF values ----
   vif_df <- data.frame(vmeoi = character(),
@@ -44,9 +44,9 @@ loop_seed <- switch(vmeoi,
   source("code/03_Modelling.R")
   
   ## Summary outputs by VME group ----
-  var_select_df <- filter(var_select_df, vmeoi == vmeoi) %>%
-    janitor::adorn_totals("row")  
-  write_csv(var_select_df, paste0(output_folder,"/",vmeoi,"_summary_variable_selection.csv"))
+  # var_select_df <- filter(var_select_df, vmeoi == vmeoi) %>%
+  #   janitor::adorn_totals("row")  
+  # write_csv(var_select_df, paste0(output_folder,"/",vmeoi,"_summary_variable_selection.csv"))
   write_csv(vif_df, paste0(output_folder,"/",vmeoi,"_summary_vif_values.csv"))
   write_csv(fold_metrics_summary_df, paste0(output_folder,"/",vmeoi,"_summary_fold_metrics.csv"))
 
@@ -59,21 +59,27 @@ loop_seed <- switch(vmeoi,
   }  
 
   ## Extrapolations for P1-4 for SSP 2-4.5 (specific figures within body of text) ----
-  source("code/06_Extrapolations_SSP245.R")
+  cat("Computing specific extrapolations for SSP 2-4.5\n")
+  source("code/06_ExtrapolationsSSP245.R")
   
   ## Maps per VME group ----
+  cat("Creating final modelling maps\n")
   source("code/04_Mapping.R")
 
   ## Output functional response curves ----
+  cat("Creating functional response curves\n")
   source("code/09_FunctionalResponseCurves.R")
 
   ## Environmental variable layer maps ----
+  cat("Outputting CMIP selected variables three-plot comparisons\n")
   source("code/08_SelVarsThreePlotComparison.R")
 
   ## Correlation matrix plots + correlation differences ----
+  cat("Extracting correlation matrix tables, plots, and differences\n")
   source("code/02_Exploratory/05_VarCorrTimeSeries.R")
 
   ## Selected CMIP vars ADF + Tukey table ----
+  cat("Outputting CMIP variable ADF & Tukey results table\n")
   source("code/10_CMIPADFTable.R")
 
   ## Re-run modelling without variable selection (all CMIP, still only top selected terrain variable) ----

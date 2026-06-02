@@ -51,7 +51,7 @@ extrapolation_rasters <- lapply(extrapolation_area, function(extrap) {
 
 ## Prepare rasters for mapping ----
 if (!dir.exists(paste0(output_folder,"/Extrapolations"))) dir.create(paste0(output_folder,"/Extrapolations"))
-if (!dir.exists(paste0(output_folder,"/Extrapolations/rasters"))) dir.create(paste0(output_folder,"/Extrapolations/rasters"))
+if (!dir.exists(paste0(output_folder,"/Extrapolations/RFModelRasters"))) dir.create(paste0(output_folder,"/Extrapolations/RFModelRasters"))
 
 extrapolation_rasters_mask <- lapply(1:length(extrapolation_rasters), function(x) {
   layer <- terra::mask(extrapolation_rasters[[x]], !is.na(extrapolation_rasters[[x]]))
@@ -61,7 +61,7 @@ extrapolation_rasters_mask <- lapply(1:length(extrapolation_rasters), function(x
   }
   terra::writeRaster(
     layer, 
-    filename = paste0(output_folder,"/Extrapolations/rasters/",vmeoi,"_extrap_",output_name,"_",names(extrapolation_rasters)[x],".tif"),
+    filename = paste0(output_folder,"/Extrapolations/RFModelRasters/",vmeoi,"_extrap_",output_name,"_",names(extrapolation_rasters)[x],".tif"),
     overwrite = TRUE
   )
   return(layer)

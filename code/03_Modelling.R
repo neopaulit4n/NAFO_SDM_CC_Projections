@@ -225,9 +225,9 @@ rf_res_absprob_baseline <- lapply(fold_predictions_spatial_baseline, `[[`, 1) %>
   terra::mean(.)
 
 terra::writeRaster(rf_res_presprob_baseline, 
-  paste0(output_folder,"/rasters/",vmeoi,"_rf_res_baseline_rawPresenceProb.tif"), overwrite = TRUE)
+  paste0(output_folder,"/RFModelRasters/",vmeoi,"_rf_res_baseline_rawPresenceProb.tif"), overwrite = TRUE)
 terra::writeRaster(rf_res_absprob_baseline, 
-  paste0(output_folder,"/rasters/",vmeoi,"_rf_res_baseline_rawAbsenceProb.tif"), overwrite = TRUE)
+  paste0(output_folder,"/RFModelRasters/",vmeoi,"_rf_res_baseline_rawAbsenceProb.tif"), overwrite = TRUE)
 
 ## Projections ----
 rf_res_presprob_proj <- map(period_all, function(poi) {
@@ -239,7 +239,7 @@ rf_res_presprob_proj <- map(period_all, function(poi) {
       terra::mean(.)
 
     terra::writeRaster(fold_layers, 
-      paste0(output_folder,"/rasters/",vmeoi,"_rf_res_proj_rawPresenceProb_",poi,"_",sspoi,".tif"), overwrite = TRUE)
+      paste0(output_folder,"/RFModelRasters/",vmeoi,"_rf_res_proj_rawPresenceProb_",poi,"_",sspoi,".tif"), overwrite = TRUE)
     
     return(fold_layers)
   }) %>% set_names(ssp_all)
@@ -255,7 +255,7 @@ rf_res_absprob_proj <- map(period_all, function(poi) {
       terra::mean(.)
 
     terra::writeRaster(fold_layers, 
-      paste0(output_folder,"/rasters/",vmeoi,"_rf_res_proj_rawAbsenceProb_",poi,"_",sspoi,".tif"), overwrite = TRUE)
+      paste0(output_folder,"/RFModelRasters/",vmeoi,"_rf_res_proj_rawAbsenceProb_",poi,"_",sspoi,".tif"), overwrite = TRUE)
     
     return(fold_layers)
   }) %>% set_names(ssp_all)
@@ -291,7 +291,7 @@ rm(rf_res_baseline_freq_count, rf_res_baseline_AvgProb)
 lapply(ls(pattern = "rf_res_baseline"), function(res_name) {
   res_raster <- get(res_name)
   terra::writeRaster(res_raster, 
-    filename = paste0(output_folder,"/rasters/",vmeoi,"_",res_name,".tif"), overwrite = TRUE)
+    filename = paste0(output_folder,"/RFModelRasters/",vmeoi,"_",res_name,".tif"), overwrite = TRUE)
 })
 
 ## Projections ----
@@ -334,7 +334,7 @@ for (i in 1:length(rf_pred_foldstack_proj)) {
   lapply(ls(pattern = "rf_res_proj"), function(res_name) {
     res_raster <- get(res_name)
     terra::writeRaster(res_raster, 
-      filename = paste0(output_folder,"/rasters/",vmeoi,"_",res_name,"_",comb_name,".tif"), overwrite = TRUE)
+      filename = paste0(output_folder,"/RFModelRasters/",vmeoi,"_",res_name,"_",comb_name,".tif"), overwrite = TRUE)
   })
 
 }

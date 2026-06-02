@@ -19,7 +19,7 @@ cmip_df_period_ssp <- cmip_df %>%
 
 
 # Get study area extent and create spatial mask ----
-sa <- terra::rast("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint/NRA_BNAM_b_cur_avg_max.tif") %>%
+sa <- terra::rast("data/raw/Bathy_Layers/GEBCO2024_FS005.tif") %>%
   terra::as.polygons(.) %>%
   sf::st_as_sf(.) %>%
   sf::st_transform(4326) %>%
@@ -46,7 +46,7 @@ transform_cmip_to_raster <- function(data, varstat, period, ssp) {
   pts <- terra::vect(df)
   
   # Determine resolution of data in degrees
-  # res <- round(ens_df_period_cell$lon[2]-ens_df_period_cell$lon[1], 5)
+  # res <- round(cmip_ens_proj_df_period_cell$lon[2]-cmip_ens_proj_df_period_cell$lon[1], 5)
   res <- round(sort(unique(data$lon))[2] - sort(unique(data$lon))[1], 5)
   
   # Create template raster

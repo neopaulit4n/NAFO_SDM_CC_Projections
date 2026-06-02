@@ -60,5 +60,5 @@ nc_data <- lapply(vars, function(var) {
   ) %>%
   select(-c(pressure, abs_sal, con_temp, sw_dens, dep))
 
-write_csv(nc_data, "data/cleaned/cmip_ens_1993_2014_df.csv")
+write_csv(nc_data, "data/processed/cmip_ens_1993_2014_df.csv")
 

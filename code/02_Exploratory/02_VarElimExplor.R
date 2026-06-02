@@ -6,12 +6,12 @@
 library(tidyverse)
 
 # Load response ----
-resp_df <- read_csv("data/cleaned/VME_group_PA_df.csv", show_col_types = FALSE)
+resp_df <- read_csv("data/processed/VME_group_PA_df.csv", show_col_types = FALSE)
 
 # Load predictors ----
 
 ## Load terrain variables (static) ----
-bathy_layers <- list.files(path = "data/raw/BNAM_Data_From_Cam/Bathymetry_Terrain_From_NAFO_SharePoint", 
+bathy_layers <- list.files(path = "data/raw/Bathy_Layers", 
                            pattern = "\\.tif$", full.names = TRUE) %>%
   set_names(., nm = basename(.) %>% tools::file_path_sans_ext()) %>%
   lapply(terra::rast) %>%
@@ -21,6 +21,7 @@ names(bathy_layers) <- gsub("GEBCO2024_FS005_StudyArea_","",names(bathy_layers))
 names(bathy_layers)[1] <- "FS005"
 
 ## Load BNAM layers (will use these to form predictions, decide which variables to select) ----
+# Would replace these data with the baseline period data instead so doesn't work right now
 bnam_layers <- list.files("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint", 
                           pattern = "\\.tif$", full.names = TRUE) %>%
   set_names(., nm = basename(.) %>% tools::file_path_sans_ext()) %>%

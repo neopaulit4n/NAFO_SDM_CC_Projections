@@ -46,7 +46,7 @@ resp_df <- bind_rows(resp_list, .id = "VME_Group") %>%
   ungroup %>%
   select(-c(Taxa, Taxa_Biomass_Kg, VME_Group_kg2, VME_P_A2)) %>%
   distinct
-write_csv(resp_df, "data/cleaned/VME_group_PA_df.csv")
+write_csv(resp_df, "data/processed/VME_group_PA_df.csv")
 
 # If wanted to keep taxa, would need to resolve boltenia situation where some rows don't have any taxa/kg data
   # but still have VME_P_A = 1. Some taxa for boltenia also marked as TUNICATE, SESSILE - does that still count as boltenia?

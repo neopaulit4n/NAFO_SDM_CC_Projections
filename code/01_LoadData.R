@@ -5,13 +5,13 @@ library(tidyverse)
 
 # Load response ----
 cat("Loading response dataframe\n")
-resp_df <- read_csv("data/cleaned/VME_group_PA_df.csv", show_col_types = FALSE)
+resp_df <- read_csv("data/processed/VME_group_PA_df.csv", show_col_types = FALSE)
 
 # Load predictors ----
 
 ## Load terrain variables (static) ----
 cat("Loading terrain variables\n")
-bathy_layers <- list.files(path = "data/raw/BNAM_Data_From_Cam/Bathymetry_Terrain_From_NAFO_SharePoint", 
+bathy_layers <- list.files(path = "data/raw/Bathy_Layers", 
                            pattern = "\\.tif$", full.names = TRUE) %>%
   set_names(., nm = basename(.) %>% tools::file_path_sans_ext()) %>%
   lapply(terra::rast) %>%
@@ -22,7 +22,7 @@ names(bathy_layers)[1] <- "FS005"
 
 ## Load ensembled CMIP data ----
 cat("Loading CMIP data\n")
-cmip_df <- readRDS("data/processed/ens_df.rds") %>%
+cmip_df <- readRDS("data/processed/cmip_ens_proj_df.rds") %>%
   pivot_wider(names_from = season, values_from = mldavg, names_glue = {"{.value}_{season}"}) %>%
   mutate(mldavg = coalesce(mldavg_W,mldavg_F,mldavg_Su,mldavg_Sp)) %>%
   select(-dep) %>%  # will use terrain variable FS005 for depth instead
@@ -44,7 +44,7 @@ cmip_df <- readRDS("data/processed/ens_df.rds") %>%
 terrain_topvars <- read_csv("data/processed/VarImp_2024_2025_SCR_02_TopStaticVarsByVME.csv", show_col_types = FALSE)
 
 # Create baseline dataframe that will build the models used for predictions ----
-baseline_df <- read_csv("data/cleaned/cmip_ens_1993_2014_df.csv", show_col_types = FALSE) %>%
+baseline_df <- read_csv("data/processed/cmip_ens_1993_2014_df.csv", show_col_types = FALSE) %>%
   rename(
     BS = sobavg,
     SSS = sosavg,
@@ -90,12 +90,10 @@ period_all <- c("P1", "P2", "P3", "P4")
 ssp_all <- unique(cmip_df_period_ssp$ssp)
 
 # Get study area extent and create spatial mask ----
-sa <- terra::rast("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint/NRA_BNAM_b_cur_avg_max.tif") %>%
+sa <- terra::rast("data/raw/Bathy_Layers/GEBCO2024_FS005.tif") %>%
   terra::as.polygons(.) %>%
   sf::st_as_sf(.) %>%
   sf::st_transform(4326) %>%
-  mutate(NRA_BNAM_b_tmp_mean = 1) %>%
-  group_by(NRA_BNAM_b_tmp_mean) %>%
   summarise(geometry = sf::st_union(geometry))
 
 sa_lims <- sf::st_coordinates(sa) %>% as.data.frame %>%

@@ -60,7 +60,7 @@ cor_df <- cor(
   pivot_longer(everything(), names_to = "var2", values_to = "cor") %>%
   mutate(var1 = rep(vme_vars, each = length(vme_vars))) %>%
   select(var1, var2, cor)
-write.csv(cor_df, file = paste0(output_folder,"/",vmeoi,"_table_cor_baseline_AllCMIPVars.csv"), row.names = FALSE)
+# write.csv(cor_df, file = paste0(output_folder,"/",vmeoi,"_table_cor_baseline_AllCMIPVars.csv"), row.names = FALSE)
 
 # plot_cor_allvars <- ggplot(data = cor_df, aes(x = var1, y = var2, fill = cor)) +
 #   geom_tile(colour = "black") +
@@ -250,6 +250,9 @@ vif_df <- rbind(vif_df, vif_df_i)
 # Create final dataframe with selected variables ----
 vme_df <- vme_df %>%
   select(all_of(c("VME_P_A", selected_vme_vars)))
+
+# Extract names of selected CMIP vars ----
+selected_cmip_vars <- selected_vme_vars[selected_vme_vars %in% names(cmip_layers)]
 
 # Prepare variable layer rasters for spatial predictions ----
 cat("Preparing variable raster layers for spatial predictions\n")

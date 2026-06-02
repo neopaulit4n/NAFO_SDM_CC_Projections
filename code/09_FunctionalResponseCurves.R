@@ -6,18 +6,18 @@
 # Plot relationship using loess smoother
 
 # Read in raster layers ----
-rf_res_presprob_baseline <- terra::rast(paste0(output_folder,"/rasters/",vmeoi,"_rf_res_baseline_rawPresenceProb.tif"))
+rf_res_presprob_baseline <- terra::rast(paste0(output_folder,"/RFModelRasters/",vmeoi,"_rf_res_baseline_rawPresenceProb.tif"))
 
 rf_res_presprob_proj <- lapply(
   list.files(
-    path = paste0(output_folder,"/rasters"),
+    path = paste0(output_folder,"/RFModelRasters"),
     pattern = "rf_res_proj_rawPresenceProb",
     full.names = TRUE),
   function(x) {
     terra::rast(x)
 }) |>
   set_names(str_extract(
-    list.files(path = paste0(output_folder,"/rasters"), pattern = "rf_res_proj_rawPresenceProb"),
+    list.files(path = paste0(output_folder,"/RFModelRasters"), pattern = "rf_res_proj_rawPresenceProb"),
     pattern = "P\\d_\\d-\\d\\.\\d"
   ))
 

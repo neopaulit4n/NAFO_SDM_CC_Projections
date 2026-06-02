@@ -61,7 +61,7 @@ metric_names <- c("MaxClass", "MaxClassF", "MaxClassAvgProb", "CombConf", "CVSum
 
 ## Read in rasters ----
 rf_pred_proj_all <- lapply(metric_names, function(metric) {
-  metric_pred_names <- list.files(paste0(output_folder, "/rasters"), pattern = paste0("rf_res_proj_", metric, "_"), full.names = TRUE)
+  metric_pred_names <- list.files(paste0(output_folder, "/RFModelRasters"), pattern = paste0("rf_res_proj_", metric, "_"), full.names = TRUE)
   metric_preds <- terra::rast(metric_pred_names)
   names(metric_preds) <- paste0(str_extract(metric_pred_names, "1-2.6|2-4.5|3-7.0|5-8.5"), "_", str_extract(metric_pred_names, "P[1-4]"))
   metric_preds <- metric_preds[[order(names(metric_preds))]]  # reorder layers by period (P1-P4) within each SSP for facetting
@@ -76,7 +76,7 @@ rf_pred_proj_all <- lapply(metric_names, function(metric) {
   set_names(metric_names)
 
 rf_pred_baseline_all <- lapply(metric_names, function(metric) {
-  metric_pred_names <- list.files(paste0(output_folder, "/rasters"), pattern = paste0("rf_res_baseline_", metric, "\\.tif"), full.names = TRUE)
+  metric_pred_names <- list.files(paste0(output_folder, "/RFModelRasters"), pattern = paste0("rf_res_baseline_", metric, "\\.tif"), full.names = TRUE)
   metric_preds <- terra::rast(metric_pred_names)
   
   # Factorise MaxClass rasters for plotting

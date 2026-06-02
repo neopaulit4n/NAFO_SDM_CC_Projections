@@ -5,12 +5,10 @@ library(tidyverse)
 # Load all desired layers ----
 
 # NAFO study area
-sa <- terra::rast("data/raw/BNAM_Data_From_Cam/BNAM_From_NAFO_SharePoint/NRA_BNAM_b_cur_avg_max.tif") %>%
+sa <- terra::rast("data/raw/Bathy_Layers/GEBCO2024_FS005.tif") %>%
   terra::as.polygons(.) %>%
   sf::st_as_sf(.) %>%
   sf::st_transform(4326) %>%
-  mutate(NRA_BNAM_b_tmp_mean = 1) %>%
-  group_by(NRA_BNAM_b_tmp_mean) %>%
   summarise(geometry = sf::st_union(geometry))
 
 # Bathymetry
@@ -24,7 +22,7 @@ kde_poly <- sf::read_sf("data/raw/Mapping_Layers/NAFO_2025_VME_Goup_Threshold_KD
 vme_closures <- sf::read_sf("data/raw/Mapping_Layers/NAFO_VME_closures_2022/NAFO_VME_closures_2022.shp")
 
 # VME presence/absence points
-pa <- read_csv("data/cleaned/VME_group_PA_df.csv", show_col_types = FALSE) %>%
+pa <- read_csv("data/processed/VME_group_PA_df.csv", show_col_types = FALSE) %>%
   filter(VME_Group == vmeoi) %>%
   sf::st_as_sf(coords = c("Start_Long_DD", "Start_Lat_DD")) %>%
   sf::st_set_crs(4326)
