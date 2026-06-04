@@ -23,9 +23,6 @@ names(bathy_layers)[1] <- "FS005"
 ## Load ensembled CMIP data ----
 cat("Loading CMIP data\n")
 cmip_df <- readRDS("data/processed/cmip_ens_proj_df.rds") %>%
-  pivot_wider(names_from = season, values_from = mldavg, names_glue = {"{.value}_{season}"}) %>%
-  mutate(mldavg = coalesce(mldavg_W,mldavg_F,mldavg_Su,mldavg_Sp)) %>%
-  select(-dep) %>%  # will use terrain variable FS005 for depth instead
   rename(
     BS = sobavg,
     SSS = sosavg,
@@ -44,7 +41,7 @@ cmip_df <- readRDS("data/processed/cmip_ens_proj_df.rds") %>%
 terrain_topvars <- read_csv("data/processed/VarImp_2024_2025_SCR_02_TopStaticVarsByVME.csv", show_col_types = FALSE)
 
 # Create baseline dataframe that will build the models used for predictions ----
-baseline_df <- read_csv("data/processed/cmip_ens_1993_2014_df.csv", show_col_types = FALSE) %>%
+baseline_df <- readRDS("data/processed/cmip_ens_1993_2014_df.rds") %>%
   rename(
     BS = sobavg,
     SSS = sosavg,
@@ -58,7 +55,6 @@ baseline_df <- read_csv("data/processed/cmip_ens_1993_2014_df.csv", show_col_typ
     MLD_W = mldavg_W,
     MLD_Sp = mldavg_Sp
   ) %>%
-  select(-month) %>%
   summarise(
     across(SST:BStr, 
       list(
