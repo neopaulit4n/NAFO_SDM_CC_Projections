@@ -51,7 +51,7 @@ extrapolation_rasters <- lapply(extrapolation_area, function(extrap) {
 
 ## Prepare rasters for mapping ----
 if (!dir.exists(paste0(output_folder,"/Extrapolations"))) dir.create(paste0(output_folder,"/Extrapolations"))
-if (!dir.exists(paste0(output_folder,"/Extrapolations/RFModelRasters"))) dir.create(paste0(output_folder,"/Extrapolations/RFModelRasters"))
+if (!dir.exists(paste0(output_folder,"/Extrapolations/rasters"))) dir.create(paste0(output_folder,"/Extrapolations/rasters"))
 
 extrapolation_rasters_mask <- lapply(1:length(extrapolation_rasters), function(x) {
   layer <- terra::mask(extrapolation_rasters[[x]], !is.na(extrapolation_rasters[[x]]))
@@ -61,7 +61,7 @@ extrapolation_rasters_mask <- lapply(1:length(extrapolation_rasters), function(x
   }
   terra::writeRaster(
     layer, 
-    filename = paste0(output_folder,"/Extrapolations/RFModelRasters/",vmeoi,"_extrap_",output_name,"_",names(extrapolation_rasters)[x],".tif"),
+    filename = paste0(output_folder,"/Extrapolations/rasters/",vmeoi,"_extrap_",output_name,"_",names(extrapolation_rasters)[x],".tif"),
     overwrite = TRUE
   )
   return(layer)
@@ -93,14 +93,18 @@ if (output_name == "P3.3-7.0" & vmeoi == "black_corals") {
 # next()
 
 ## Extract limits for univariate and combinatorial legends ----
-lim_uni <- c(
-  min(c(extrapolation_area[[1]]$data$univariate$ExDet, extrapolation_area[[2]]$data$univariate$ExDet)),
-  max(c(extrapolation_area[[1]]$data$univariate$ExDet, extrapolation_area[[2]]$data$univariate$ExDet))  
-)
-lim_comb <- c(
-  min(c(extrapolation_area[[1]]$data$combinatorial$ExDet, extrapolation_area[[2]]$data$combinatorial$ExDet)),
-  max(c(extrapolation_area[[1]]$data$combinatorial$ExDet, extrapolation_area[[2]]$data$combinatorial$ExDet))  
-)
+if (nrow(extrapolation_area[[1]]$data$univariate) > 0 & nrow(extrapolation_area[[2]]$data$univariate) > 0) {
+  lim_uni <- c(
+    min(c(extrapolation_area[[1]]$data$univariate$ExDet, extrapolation_area[[2]]$data$univariate$ExDet)),
+    max(c(extrapolation_area[[1]]$data$univariate$ExDet, extrapolation_area[[2]]$data$univariate$ExDet))  
+  )  
+}
+if (nrow(extrapolation_area[[1]]$data$combinatorial) > 0 & nrow(extrapolation_area[[2]]$data$combinatorial) > 0) {
+  lim_comb <- c(
+    min(c(extrapolation_area[[1]]$data$combinatorial$ExDet, extrapolation_area[[2]]$data$combinatorial$ExDet)),
+    max(c(extrapolation_area[[1]]$data$combinatorial$ExDet, extrapolation_area[[2]]$data$combinatorial$ExDet))  
+  )
+}
 
 ## Generate ExDet maps ----
 library(patchwork)
@@ -108,7 +112,9 @@ extrap_exdet_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
   ggplot() +
     theme_classic() +
     labs(title = ifelse(dataset == "PA", "Presence + Absence", "Presence Only")) +
-    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"ExDet","analogue", sep = "\\."),names(extrapolation_rasters_mask))]]) +
+    {if (length(grep(paste(dataset,"ExDet","analogue", sep = "\\."),names(extrapolation_rasters_mask))) > 0) {
+    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"ExDet","analogue", sep = "\\."),names(extrapolation_rasters_mask))]])
+    }} +
     scale_fill_distiller(
       name = "Analogue",
       palette = "Greys",
@@ -117,7 +123,9 @@ extrap_exdet_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
       na.value = "transparent"
     ) +
     ggnewscale::new_scale_fill() +
-    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"ExDet","univariate", sep = "\\."),names(extrapolation_rasters_mask))]]) +
+    {if (length(grep(paste(dataset,"ExDet","univariate", sep = "\\."),names(extrapolation_rasters_mask))) > 0) {
+    tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"ExDet","univariate", sep = "\\."),names(extrapolation_rasters_mask))]])
+    }} +
     scale_fill_distiller(
       name = "Univariate",
       palette = "Oranges",
@@ -161,16 +169,39 @@ extrap_exdet_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
 ## Generate MIC maps ----
 extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
 
-  mic_layer <- terra::merge(
-    extrapolation_rasters_mask[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(extrapolation_rasters_mask))]],
-    extrapolation_rasters_mask[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(extrapolation_rasters_mask))]]
-  )
-  {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))) > 0) { 
-    mic_layer <- terra::merge(
-      mic_layer, 
-      extrapolation_rasters_mask[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]]
-    )
+  # mic_layer <- terra::merge(
+  #   extrapolation_rasters_mask[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(extrapolation_rasters_mask))]],
+  #   extrapolation_rasters_mask[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(extrapolation_rasters_mask))]]
+  # )
+  # {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))) > 0) { 
+  #   mic_layer <- terra::merge(
+  #     mic_layer, 
+  #     extrapolation_rasters_mask[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]]
+  #   )
+  # }}
+
+  mic_layer_analogue <- {if (length(grep(paste(dataset,"ExDet","analogue", sep = "\\."),names(extrapolation_rasters_mask))) > 0) { 
+      extrapolation_rasters_mask[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(extrapolation_rasters_mask))]]
   }}
+
+  mic_layer_univariate <- {if (length(grep(paste(dataset,"ExDet","univariate", sep = "\\."),names(extrapolation_rasters_mask))) > 0) { 
+      extrapolation_rasters_mask[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(extrapolation_rasters_mask))]]
+  }}
+
+  mic_layer_combinatorial <- {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))) > 0) { 
+      extrapolation_rasters_mask[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]]
+  }}
+
+  mic_layer_list <- list(mic_layer_analogue, mic_layer_univariate, mic_layer_combinatorial)
+  mic_layer_list <- Filter(Negate(is.null), mic_layer_list)
+
+  mic_layer <- if (length(mic_layer_list) == 0) {
+    merged <- NULL
+  } else if (length(mic_layer_list) == 1) {
+    merged <- mic_layer_list[[1]]  # nothing to merge, use as-is
+  } else {
+    merged <- do.call(terra::merge, mic_layer_list)
+  }
 
   ggplot() +
     theme_classic() +
@@ -302,4 +333,4 @@ write_csv(extrap_analysis, paste0(output_folder,"/Extrapolations/",vmeoi,"_extra
 # terra::plot(sdm2024_extana)
 # terra::plot(sdm2024_extcomb)
 # terra::plot(sdm2024_extuni)
-# terra::plot(sdm2024_micana)
+  # terra::plot(sdm2024_micana)

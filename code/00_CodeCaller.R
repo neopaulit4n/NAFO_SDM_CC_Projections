@@ -4,7 +4,7 @@
 # Load data ----
 source("code/01_LoadData.R")
 
-vmeoi <- "small_gorgonians"
+vmeoi <- "large_sponges"
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----
 fold_metrics_summary_df <- data.frame(
@@ -18,13 +18,13 @@ fold_metrics_summary_df <- data.frame(
 loop_seed <- switch(vmeoi,
   "black_corals" = 412,
   "small_gorgonians" = 412,
-  "large_gorgonians" = 413
+  "large_sponges" = 413
 )
 
 # for (vmeoi in "small_gorgonians") {  # vme_all
 
   ## Create VMEOI directory if it doesn't exist already ----
-  output_folder <- paste0("output/",vmeoi)  
+  output_folder <- paste0("output/",vmeoi)
   if (!dir.exists(output_folder)) dir.create(output_folder)
   if (!dir.exists(paste0(output_folder,"/RFModelRasters"))) dir.create(paste0(output_folder,"/RFModelRasters"))
 

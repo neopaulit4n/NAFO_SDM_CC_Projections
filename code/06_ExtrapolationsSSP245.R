@@ -19,7 +19,9 @@ p <- lapply(c("PA","PresenceOnly"), function(dataset) {
     p1 <- ggplot() +
       theme_classic() +
       labs(title = ifelse(poi == "baseline", "Reference", paste(poi, "SSP 2-4.5"))) +
-      tidyterra::geom_spatraster(data = r[[grep(paste(dataset,"ExDet","analogue", sep = "\\."),names(r))]]) +
+      {if (length(grep(paste(dataset,"ExDet","analogue", sep = "\\."),names(r))) > 0) {
+      tidyterra::geom_spatraster(data = r[[grep(paste(dataset,"ExDet","analogue", sep = "\\."),names(r))]])
+      }} +
       scale_fill_distiller(
         name = "Analogue",
         palette = "Greys",
@@ -28,7 +30,9 @@ p <- lapply(c("PA","PresenceOnly"), function(dataset) {
         na.value = "transparent"
       ) +
       ggnewscale::new_scale_fill() +
-      tidyterra::geom_spatraster(data = r[[grep(paste(dataset,"ExDet","univariate", sep = "\\."),names(r))]]) +
+      {if (length(grep(paste(dataset,"ExDet","univariate", sep = "\\."),names(r))) > 0) {
+      tidyterra::geom_spatraster(data = r[[grep(paste(dataset,"ExDet","univariate", sep = "\\."),names(r))]])
+      }} +
       scale_fill_distiller(
         name = "Univariate",
         palette = "Oranges",
@@ -56,16 +60,39 @@ p <- lapply(c("PA","PresenceOnly"), function(dataset) {
         legend.key.size = unit(5, "mm")
       )
     
-    mic_layer <- terra::merge(
-      r[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(r))]],
-      r[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(r))]]
-    )
-    {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(r))) > 0) { 
-      mic_layer <- terra::merge(
-        mic_layer, 
-        r[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(r))]]
-      )
+    # mic_layer <- terra::merge(
+    #   r[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(r))]],
+    #   r[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(r))]]
+    # )
+    # {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(r))) > 0) { 
+    #   mic_layer <- terra::merge(
+    #     mic_layer, 
+    #     r[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(r))]]
+    #   )
+    # }}
+
+    mic_layer_analogue <- {if (length(grep(paste(dataset,"ExDet","analogue", sep = "\\."),names(r))) > 0) { 
+    r[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(r))]]
     }}
+
+    mic_layer_univariate <- {if (length(grep(paste(dataset,"ExDet","univariate", sep = "\\."),names(r))) > 0) { 
+        r[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(r))]]
+    }}
+
+    mic_layer_combinatorial <- {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(r))) > 0) { 
+        r[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(r))]]
+    }}
+
+    mic_layer_list <- list(mic_layer_analogue, mic_layer_univariate, mic_layer_combinatorial)
+    mic_layer_list <- Filter(Negate(is.null), mic_layer_list)
+
+    mic_layer <- if (length(mic_layer_list) == 0) {
+      merged <- NULL
+    } else if (length(mic_layer_list) == 1) {
+      merged <- mic_layer_list[[1]]  # nothing to merge, use as-is
+    } else {
+      merged <- do.call(terra::merge, mic_layer_list)
+    }
 
     p2 <- ggplot() +
       theme_classic() +
@@ -75,7 +102,7 @@ p <- lapply(c("PA","PresenceOnly"), function(dataset) {
         name = "Covariate", na.value = "transparent", na.translate = FALSE) +
       theme(
         legend.position = "inside",
-        legend.position.inside = c(0.75, 0.22),
+        legend.position.inside = c(0.85, 0.25),
         legend.box.just = c("left", "top"),
         legend.title = element_text(size = 8),
         legend.text = element_text(size = 8),
@@ -86,10 +113,10 @@ p <- lapply(c("PA","PresenceOnly"), function(dataset) {
   }) |>
     set_names(c("baseline", period_all)) |>
     unlist()
-  }) |>
+}) |>
   set_names(c("PA", "PresenceOnly"))
 
-cowplot::plot_grid(plotlist = p[[1]], nrow = 2, byrow = FALSE)
+# cowplot::plot_grid(plotlist = p[[1]], nrow = 2, byrow = FALSE)
 
 library(patchwork)
 p$PA[[1]] + p$PA[[3]] + p$PA[[5]] + p$PA[[7]] + p$PA[[9]] +
