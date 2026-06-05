@@ -21,7 +21,7 @@ loop_seed <- switch(vmeoi,
   "large_sponges" = 413
 )
 
-# for (vmeoi in "small_gorgonians") {  # vme_all
+# for (vmeoi in vme_all) {
 
   ## Create VMEOI directory if it doesn't exist already ----
   output_folder <- paste0("output/",vmeoi)
@@ -94,7 +94,7 @@ loop_seed <- switch(vmeoi,
 
   ### Run modelling ----
   source("code/07_ModellingNoVarSel.R")
-  write_csv(fold_metrics_summary_df, paste0(output_folder,"/",vmeoi,"_summary_fold_metrics_novarsel.csv"))
+  write_csv(fold_metrics_summary_df_i, paste0(output_folder,"/",vmeoi,"_summary_fold_metrics_novarsel.csv"))
     
 # }
 

@@ -165,7 +165,7 @@ fold_metrics_summary_df_i <- fold_metrics_df_i %>%
   summarise(mean_value = mean(value, na.rm = TRUE),
             sd_value = sd(value, na.rm = TRUE),
             .groups = "drop")
-fold_metrics_summary_df <- bind_rows(fold_metrics_summary_df, fold_metrics_summary_df_i)
+# fold_metrics_summary_df <- bind_rows(fold_metrics_summary_df, fold_metrics_summary_df_i)
 
 # # Create spatial predictions stack ----
 # rf_pred_foldstack_baseline <- terra::rast(fold_predictions_spatial_baseline_reclass)

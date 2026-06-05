@@ -220,7 +220,7 @@ extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
       # axis.ticks.y = element_blank(),
       # axis.title.y = element_blank(),
       legend.position = "inside",
-      legend.position.inside = c(0.75, 0.27),
+      legend.position.inside = c(0.85, 0.25),
       legend.box.just = c("left", "top"),
       legend.title = element_text(size = 8),
       legend.text = element_text(size = 8),
