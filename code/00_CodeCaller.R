@@ -76,7 +76,7 @@ loop_seed <- switch(vmeoi,
 
   ## Correlation matrix plots + correlation differences ----
   cat("Extracting correlation matrix tables, plots, and differences\n")
-  source("code/02_Exploratory/05_VarCorrTimeSeries.R")
+  source("code/11_VarCorrTimeSeries.R")
 
   ## Selected CMIP vars ADF + Tukey table ----
   cat("Outputting CMIP variable ADF & Tukey results table\n")
