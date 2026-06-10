@@ -1,9 +1,6 @@
 
 # Exploring how variable correlations change across time periods (stationarity of variable correlations)
 
-# Ellen suggested looking into Augmented Dickey-Fuller (ADF) or Wald tests but not sure if they're suitable for testing variable correlations changes?
-# Examples I see for ADF are for only one variable time series, not correlations between variables
-
 # Create directories ----
 if (!dir.exists(paste0(output_folder,"/VarCorrelations"))) dir.create(paste0(output_folder,"/VarCorrelations"))
 if (!dir.exists(paste0(output_folder,"/VarCorrelations/01_InputDataframes"))) dir.create(paste0(output_folder,"/VarCorrelations/01_InputDataframes"))
@@ -13,28 +10,17 @@ if (!dir.exists(paste0(output_folder,"/VarCorrelations/04_CorDiffMat"))) dir.cre
 if (!dir.exists(paste0(output_folder,"/VarCorrelations/05_CorDiffPlots"))) dir.create(paste0(output_folder,"/VarCorrelations/05_CorDiffPlots"))
 
 # Plot correlations between variable pairs over time
-
-# Load variables layers to be used ----
-# baseline_layers <- as.list(vme_layers_baseline) %>%
-#   # set_names(paste0("baseline.",names(vme_layers_baseline)))
-#   set_names(names(vme_layers_baseline))
-# baseline_layers <- c(baseline_layers)
-
 baseline_layers <- c(cmip_layers, terrain = bathy_layers[[vme_terrain_vars]]) |>
   terra::rast()
 names(baseline_layers) <- c(names(cmip_layers), vme_terrain_vars)
 
-# projection_layers <- unlist(cmip_layers_future, recursive = FALSE)
-# projection_layers <- projection_layers[grep(paste(selected_vme_vars, collapse = "|"), names(projection_layers))]
-
-# all_layers <- c(baseline_layers, projection_layers)
-
-# projection_layers <- unlist(vme_layers_proj, recursive = FALSE)
 projection_layers <- unlist(cmip_layers_proj, recursive = FALSE) |>
   lapply(X = _, 
     function(layer) {
-      c(layer, CHNETBL3 = bathy_layers$CHNETBL3) |>
+      rast_result <- c(layer, bathy_layers[[vme_terrain_vars]]) |>
         terra::rast()
+      names(rast_result) <- gsub("GEBCO2024_FS005_StudyArea_","", names(rast_result))
+      return(rast_result)
     })
 
 all_layers <- list()
@@ -98,12 +84,7 @@ all_layers_overlap <- lapply(all_layers, function(layer) {
       Start_Long_DD, Start_Lat_DD)
     ) %>%
     select(-ID)
-}) #%>%
-  # set_names(names(all_layers)) %>%
-  # bind_cols()
-
-# Transform into dataframes
-# all_layers_overlap_df <- lapply(all_layers_overlap, terra::as.data.frame)
+}) 
 
 # Output base dataframes used to calculate correlations between variables
 lapply(1:length(all_layers_overlap), function(df) {
@@ -209,7 +190,6 @@ lapply(names(all_layers_cor_adj_dif), function(x) {
   df <- filter(all_layers_cor_adj_dif_df, DiffID == x)
   p <- ggplot(data = df, aes(x = var1, y = var2, fill = cordiff)) +
     geom_tile(colour = "black") +
-    # geom_text(aes(label = ifelse(cor > 0.7 | cor < -0.7, "*", ""))) +
     scale_fill_gradient2(low = "blue", mid = "white", high = "red", 
       limit = c(min(all_layers_cor_adj_dif_df$cordiff), max(all_layers_cor_adj_dif_df$cordiff)), midpoint = 0) +
     scale_x_discrete(expand = c(0,0)) +
@@ -226,7 +206,6 @@ lapply(names(all_layers_cor_adj_dif), function(x) {
     plot = p, width = 8, height = 6
   )
 })
-
 
 # Calculate correlation differences between adjacent time periods and baseline over all SSPs for overlapping PA cells ----
 all_layers_cor_adj <- lapply(
@@ -287,7 +266,6 @@ lapply(names(all_layers_cor_adj_dif), function(x) {
   df <- filter(all_layers_cor_adj_dif_df, DiffID == x)
   p <- ggplot(data = df, aes(x = var1, y = var2, fill = cordiff)) +
     geom_tile(colour = "black") +
-    # geom_text(aes(label = ifelse(cor > 0.7 | cor < -0.7, "*", ""))) +
     scale_fill_gradient2(low = "blue", mid = "white", high = "red", 
       limit = c(min(all_layers_cor_adj_dif_df$cordiff), max(all_layers_cor_adj_dif_df$cordiff)), midpoint = 0) +
     scale_x_discrete(expand = c(0,0)) +
