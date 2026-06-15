@@ -102,9 +102,13 @@ names(frc_list) <- c(period_all, "Reference")
 frc_df <- lapply(frc_list, bind_rows, .id = "SSP") |>
   bind_rows(.id = "Period") |>
   select(-geometry) |>
-  pivot_longer(-c(mean, SSP, Period, Division), names_to = "Variable", values_to = "Value")
+  pivot_longer(-c(mean, SSP, Period, Division), names_to = "Variable", values_to = "Value") |>
+  mutate(
+    Period = factor(Period, levels = c("Reference","P1","P2","P3","P4")),
+    Variable = factor(Variable, levels = vme_var_selection$selected_vars)) |>
+  arrange(SSP, Period, Variable)
 
-ggplot(frc_df, aes(x = Value, y = mean, colour = Period)) +
+plot_frcgam_sspvarperiod <- ggplot(frc_df, aes(x = Value, y = mean, colour = Period)) +
   facet_grid(vars(SSP), vars(Variable), scales = "free") +
   # geom_point(aes(colour = Division), alpha = 0.2) +
   geom_smooth(alpha = 0.7) +  # uses GAM by default
@@ -119,7 +123,7 @@ ggplot(frc_df, aes(x = Value, y = mean, colour = Period)) +
       "P4" = "red")) +
   theme_bw() +
   labs(y = "Mean predicted presence probability")
-ggsave(paste0(output_folder,"/",vmeoi,"_FunctionalResponseCurveGAM.jpg"),
+ggsave(paste0(output_folder,"/",vmeoi,"_FunctionalResponseCurveGAM.jpg"), plot = plot_frcgam_sspvarperiod,
   width = 12, height = 8, dpi = 300)
 
 # Plots with points coloured by NAFO division ----
@@ -127,7 +131,7 @@ z <- filter(frc_df, Period == "Reference", SSP == "1-2.6")
 hull_df <- z |>
   group_by(SSP, Period, Division, Variable) |>
   slice(chull(Value, mean))
-ggplot(z, aes(x = Value, y = mean)) +
+plot_frcgam_vardiv <- ggplot(z, aes(x = Value, y = mean)) +
   facet_wrap(~ Variable, scales = "free") +
   geom_point(aes(colour = Division), alpha = 0.05) +
   # geom_polygon(data = hull_df, aes(colour = Division), fill = "transparent", show.legend = FALSE) +  
@@ -135,5 +139,5 @@ ggplot(z, aes(x = Value, y = mean)) +
   theme_bw() +
   labs(y = "Mean predicted presence probability", title = "Reference") +
   guides(colour = guide_legend(override.aes = list(alpha = 1)))
-ggsave(paste0(output_folder,"/",vmeoi,"_FunctionalResponseCurveGAM_ReferencePts.jpg"),
+ggsave(paste0(output_folder,"/",vmeoi,"_FunctionalResponseCurveGAM_ReferencePts.jpg"), plot = plot_frcgam_vardiv,
   width = 12, height = 8, dpi = 300)

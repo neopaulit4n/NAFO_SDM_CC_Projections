@@ -69,7 +69,7 @@ df3 <- left_join(df1, df2, by = c("period", "ssp", "variable")) |>
   mutate(bold = ifelse(is.na(bold), FALSE, bold))
 
 # Calculate ADF and append statistics ----
-df4 <- lapply(selected_cmip_vars, function(var) {
+df4 <- lapply(vme_var_selection$selected_vars[vme_var_selection$selected_vars %in% selected_cmip_vars], function(var) {
   lapply(ssp_all, function(sspoi) {
     df <- filter(df3, ssp %in% c("Reference", sspoi), variable == var)
     adf_res <- tseries::adf.test(df$mean, k = 0)

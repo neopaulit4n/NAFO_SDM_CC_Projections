@@ -194,6 +194,9 @@ ggplot(fold_var_imp_df, aes(y = Variable, x = MeanDecreaseGini)) +
 ggsave(filename = paste0(output_folder,"/",vmeoi,"_plot_rf_VarImp.jpg"), 
   width = 6, height = 4)
 
+# Variables in order of importance to sort them for other tables/figures ----
+vme_var_selection$selected_vars <- as.character(fold_var_imp_df$Variable[fold_var_imp_df$Fold == 1])
+
 # Extract partial dependence plots for each variable ----
 fold_partial_df <- lapply(fold_partialdep, function(fold) {
   bind_rows(fold)

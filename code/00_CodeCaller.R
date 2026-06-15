@@ -18,7 +18,8 @@ fold_metrics_summary_df <- data.frame(
 loop_seed <- switch(vmeoi,
   "black_corals" = 412,
   "small_gorgonians" = 412,
-  "large_sponges" = 413
+  "large_sponges" = 413,
+  "sea_pens" = 414
 )
 
 # for (vmeoi in vme_all) {
