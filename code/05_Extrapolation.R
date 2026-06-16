@@ -68,8 +68,8 @@ extrapolation_rasters_mask <- lapply(1:length(extrapolation_rasters), function(x
 }) %>%
   set_names(names(extrapolation_rasters))
 
+# Fixing combinatorial layers for P3 SSP 3-7.0 for black corals ----
 if (output_name == "P3.3-7.0" & vmeoi == "black_corals") {
-  # Fixing combinatorial layers for P3 SSP 3-7.0 ----
   replace_layer <- terra::merge(extrapolation_rasters_mask[[8]], extrapolation_rasters_mask[[10]])
   comp_layer <- cmip_layers_proj[[1]][[1]][[1]] %>%
     terra::crop(replace_layer)
@@ -82,6 +82,26 @@ if (output_name == "P3.3-7.0" & vmeoi == "black_corals") {
     terra::crop(missing_cells)
 
   extrapolation_rasters_mask[[9]] <- terra::resample(extrapolation_rasters_mask[[9]], missing_cells) %>%
+    terra::mask(missing_cells) %>%
+    terra::crop(missing_cells)
+
+  rm(replace_layer, comp_layer, missing_cells)
+}
+
+# Fixing combinatorial layers for P2 SSP 1-2.6 for sea pens ----
+if (output_name == "P2.1-2.6" & vmeoi == "sea_pens") {
+  replace_layer <- terra::merge(extrapolation_rasters_mask[[1]], extrapolation_rasters_mask[[3]])
+  comp_layer <- cmip_layers_proj[[1]][[1]][[1]] %>%
+    terra::crop(replace_layer)
+
+  missing_cells <- terra::logic(replace_layer, comp_layer, oper = "is.na") %>%
+    terra::mask(comp_layer)
+
+  extrapolation_rasters_mask[[2]] <- terra::resample(extrapolation_rasters_mask[[2]], missing_cells) %>%
+    terra::mask(missing_cells) %>%
+    terra::crop(missing_cells)
+
+  extrapolation_rasters_mask[[5]] <- terra::resample(extrapolation_rasters_mask[[5]], missing_cells) %>%
     terra::mask(missing_cells) %>%
     terra::crop(missing_cells)
 
@@ -168,17 +188,6 @@ extrap_exdet_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
 
 ## Generate MIC maps ----
 extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
-
-  # mic_layer <- terra::merge(
-  #   extrapolation_rasters_mask[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(extrapolation_rasters_mask))]],
-  #   extrapolation_rasters_mask[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(extrapolation_rasters_mask))]]
-  # )
-  # {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))) > 0) { 
-  #   mic_layer <- terra::merge(
-  #     mic_layer, 
-  #     extrapolation_rasters_mask[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]]
-  #   )
-  # }}
 
   mic_layer_analogue <- {if (length(grep(paste(dataset,"ExDet","analogue", sep = "\\."),names(extrapolation_rasters_mask))) > 0) { 
       extrapolation_rasters_mask[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(extrapolation_rasters_mask))]]
