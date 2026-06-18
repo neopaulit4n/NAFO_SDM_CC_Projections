@@ -4,7 +4,7 @@
 # Load data ----
 source("code/01_LoadData.R")
 
-vmeoi <- "large_sponges"
+vmeoi <- "sea_pens"
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----
 fold_metrics_summary_df <- data.frame(
@@ -62,6 +62,10 @@ loop_seed <- switch(vmeoi,
   ## Extrapolations for P1-4 for SSP 2-4.5 (specific figures within body of text) ----
   cat("Computing specific extrapolations for SSP 2-4.5\n")
   source("code/06_ExtrapolationsSSP245.R")
+
+  ## Extrapolations percentages tables overall and by variable ----
+  cat("Creating extrapolation percentages tables\n")
+  source("code/12_ExtrapolationPercTables.R")
   
   ## Maps per VME group ----
   cat("Creating final modelling maps\n")
