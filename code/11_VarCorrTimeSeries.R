@@ -1,4 +1,3 @@
-
 # Exploring how variable correlations change across time periods (stationarity of variable correlations)
 
 # Create directories ----
@@ -10,14 +9,14 @@ if (!dir.exists(paste0(output_folder,"/VarCorrelations/04_CorDiffMat"))) dir.cre
 if (!dir.exists(paste0(output_folder,"/VarCorrelations/05_CorDiffPlots"))) dir.create(paste0(output_folder,"/VarCorrelations/05_CorDiffPlots"))
 
 # Plot correlations between variable pairs over time
-baseline_layers <- c(cmip_layers, terrain = bathy_layers[[vme_terrain_vars]]) |>
+baseline_layers <- c(cmip_layers, bathy_layers[vme_terrain_vars]) |>
   terra::rast()
-names(baseline_layers) <- c(names(cmip_layers), vme_terrain_vars)
+# names(baseline_layers) <- c(names(cmip_layers), vme_terrain_vars)
 
 projection_layers <- unlist(cmip_layers_proj, recursive = FALSE) |>
   lapply(X = _, 
     function(layer) {
-      rast_result <- c(layer, bathy_layers[[vme_terrain_vars]]) |>
+      rast_result <- c(layer, bathy_layers[vme_terrain_vars]) |>
         terra::rast()
       names(rast_result) <- gsub("GEBCO2024_FS005_StudyArea_","", names(rast_result))
       return(rast_result)

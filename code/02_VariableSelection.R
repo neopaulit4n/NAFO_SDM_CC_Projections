@@ -83,9 +83,6 @@ cor_df <- cor(
 cat("Selecting variables\n")
 select_vme_vars <- function(pred_var_df, vmeoi, cor_threshold = 0.7, verbose = FALSE) {
   
-  # cat("\n==============================\n")
-  # cat("\nSelecting variables for VME group:", vmeoi, "\n")
-  
   vif_threshold_met <- FALSE
   cor_threshold_new <- cor_threshold
   
@@ -138,11 +135,12 @@ select_vme_vars <- function(pred_var_df, vmeoi, cor_threshold = 0.7, verbose = F
     
     # cat("\n   Removing correlated variables (threshold:", cor_threshold_new, ")\n")
     
-    uncor_vars <- remove_cor_variables(pred_var_df, 
-                                        priority_list = rf_prelim_imp %>%
-                                        pull(Variable),
-                                        current_threshold = cor_threshold_new,
-                                        verbose = verbose)
+    uncor_vars <- remove_cor_variables(
+      pred_var_df, 
+      priority_list = rf_prelim_imp %>%
+      pull(Variable),
+      current_threshold = cor_threshold_new,
+      verbose = verbose)
     
     # Calculate VIF values
     # cat("\n   Calculating VIF values for selected variables\n")
@@ -231,8 +229,8 @@ vif_df_i <- data.frame(
 )
 
 # Re-append VME terrain variable(s) if not selected ----
-if (!vme_terrain_vars %in% selected_vme_vars) {
-  selected_vme_vars <- c(vme_terrain_vars, selected_vme_vars)
+if (!any(vme_terrain_vars %in% selected_vme_vars)) {
+  selected_vme_vars <- unique(c(vme_terrain_vars, selected_vme_vars))
   vif_df_i <- rbind(
     vif_df_i, 
     c(
