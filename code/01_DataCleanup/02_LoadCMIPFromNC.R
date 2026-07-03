@@ -122,8 +122,8 @@ ens_data <- lapply(vars, extract_data_constrained)
 ens_df <- lapply(1:length(vars), function(var_idx) {
   variable <- vars[var_idx]
   data_array <- ens_data[[var_idx]]
-  lon <- ncdf4::ncvar_get(nc_file, "lon")
-  lat <- ncdf4::ncvar_get(nc_file, "lat")
+  lon <- round(ncdf4::ncvar_get(nc_file, "lon"), 5)
+  lat <- round(ncdf4::ncvar_get(nc_file, "lat"), 5)
   time <- ncdf4::ncvar_get(nc_file, "time")
   time_units <- ncdf4::ncatt_get(nc_file, "time", "units")$value
   time_origin <- as.POSIXct("1900-01-01 00:00:00", tz = "UTC")

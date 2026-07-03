@@ -113,13 +113,13 @@ if (output_name == "P2.1-2.6" & vmeoi == "sea_pens") {
 # next()
 
 ## Extract limits for univariate and combinatorial legends ----
-if (nrow(extrapolation_area[[1]]$data$univariate) > 0 & nrow(extrapolation_area[[2]]$data$univariate) > 0) {
+if (nrow(extrapolation_area[[1]]$data$univariate) > 0 | nrow(extrapolation_area[[2]]$data$univariate) > 0) {
   lim_uni <- c(
     min(c(extrapolation_area[[1]]$data$univariate$ExDet, extrapolation_area[[2]]$data$univariate$ExDet)),
     max(c(extrapolation_area[[1]]$data$univariate$ExDet, extrapolation_area[[2]]$data$univariate$ExDet))  
   )  
 }
-if (nrow(extrapolation_area[[1]]$data$combinatorial) > 0 & nrow(extrapolation_area[[2]]$data$combinatorial) > 0) {
+if (nrow(extrapolation_area[[1]]$data$combinatorial) > 0 | nrow(extrapolation_area[[2]]$data$combinatorial) > 0) {
   lim_comb <- c(
     min(c(extrapolation_area[[1]]$data$combinatorial$ExDet, extrapolation_area[[2]]$data$combinatorial$ExDet)),
     max(c(extrapolation_area[[1]]$data$combinatorial$ExDet, extrapolation_area[[2]]$data$combinatorial$ExDet))  

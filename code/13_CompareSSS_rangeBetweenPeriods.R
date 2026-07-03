@@ -27,7 +27,7 @@ diff1 <- layers[[3]] - layers[[1]]  # difference between P2 and baseline
 diff2 <- layers[[5]] - layers[[1]]  # difference between P4 and baseline
 diff3 <- layers[[5]] - layers[[3]]
 diff_plots <- c(diff1, diff2, diff3)
-names(diff_plots) <- c("P2 SSP 2-4.5 - Baseline","P4 SSP 2-4.5 - Baseline", "P4 SSP 2-4.5 - P2 SSP 2-4.5")
+names(diff_plots) <- c("P2 SSP 2-4.5 - Reference","P4 SSP 2-4.5 - Reference", "P4 SSP 2-4.5 - P2 SSP 2-4.5")
 
 
 # if (!dir.exists(paste0(output_folder,"/SelVarsMaps"))) dir.create(paste0(output_folder,"/SelVarsMaps"))

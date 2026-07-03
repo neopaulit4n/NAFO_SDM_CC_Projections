@@ -4,7 +4,7 @@
 # Load data ----
 source("code/01_LoadData.R")
 
-vmeoi <- "large_gorgonians"
+vmeoi <- "large_sponges"
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----
 fold_metrics_summary_df <- data.frame(
@@ -20,7 +20,8 @@ loop_seed <- switch(vmeoi,
   "small_gorgonians" = 412,
   "large_sponges" = 413,
   "sea_pens" = 414,
-  "large_gorgonians" = 415
+  "large_gorgonians" = 415,
+  "bryozoan" = 416
 )
 
 # for (vmeoi in vme_all) {
@@ -31,7 +32,8 @@ loop_seed <- switch(vmeoi,
   if (!dir.exists(paste0(output_folder,"/RFModelRasters"))) dir.create(paste0(output_folder,"/RFModelRasters"))
 
   ## Table to save VIF values ----
-  vif_df <- data.frame(vmeoi = character(),
+  vif_df <- data.frame(
+    vmeoi = character(),
     poi = character(),
     sspoi = character(),
     variable = character(),

@@ -70,7 +70,7 @@ baseline_df <- readRDS("data/processed/cmip_ens_1993_2014_df.rds") %>%
 cmip_df_period_ssp <- cmip_df %>%
   filter(!is.na(period)) %>%
   summarise(
-    across(BS:MLD, 
+    across(BS:BStr, 
       list(
         mean = ~mean(.x, na.rm = TRUE),
         min = ~min(.x, na.rm = TRUE),
