@@ -52,6 +52,7 @@ ea_tbl7 <- filter(ea, covariate == "Overall") |>
 
 ea_tbl7
 
+if (file.exists(paste0(output_folder,"/Extrapolations/",vmeoi,"_OverallPercentagesTable.docx"))) file.remove(paste0(output_folder,"/Extrapolations/",vmeoi,"_OverallPercentagesTable.docx"))
 gt::gtsave(ea_tbl7, paste0(output_folder,"/Extrapolations/",vmeoi,"_OverallPercentagesTable.docx"))
 
 doc <- officer::read_docx(paste0(output_folder, "/Extrapolations/", vmeoi, "_OverallPercentagesTable.docx"))
@@ -152,6 +153,7 @@ ea_tbls3 <- filter(ea, covariate != "Overall", Type == "Univariate") |>
 
 ea_tbls3
 
+if (file.exists(paste0(output_folder,"/Extrapolations/",vmeoi,"_VariablePercentagesTable.docx"))) file.remove(paste0(output_folder,"/Extrapolations/",vmeoi,"_VariablePercentagesTable.docx"))
 gt::gtsave(ea_tbls3, paste0(output_folder,"/Extrapolations/",vmeoi,"_VariablePercentagesTable.docx"))
 
 doc <- officer::read_docx(paste0(output_folder, "/Extrapolations/", vmeoi, "_VariablePercentagesTable.docx"))

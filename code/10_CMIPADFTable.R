@@ -154,6 +154,7 @@ tbl <- df |>
     table_body.vlines.style = "none"
   )
 
+if (file.exists(paste0(output_folder,"/",vmeoi,"_ADFTukeyCMIPVarTable.docx"))) file.remove(paste0(output_folder,"/",vmeoi,"_ADFTukeyCMIPVarTable.docx"))
 gt::gtsave(tbl, paste0(output_folder,"/",vmeoi,"_ADFTukeyCMIPVarTable.docx"))
 
 doc <- officer::read_docx(paste0(output_folder,"/",vmeoi,"_ADFTukeyCMIPVarTable.docx"))
