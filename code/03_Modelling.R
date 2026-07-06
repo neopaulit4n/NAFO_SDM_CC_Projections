@@ -184,7 +184,23 @@ fold_var_imp_df <- lapply(fold_var_imp, function(fold) {
   mutate(Variable = fct_reorder(Variable, MeanDecreaseGini, .fun = mean)) %>%
   ungroup()
 write.csv(fold_var_imp_df, 
-  file = paste0(output_folder,"/",vmeoi,"_table_rf_VarImp.csv"), row.names = FALSE)
+  file = paste0(output_folder,"/",vmeoi,"_table_rf_FoldVarImp.csv"), row.names = FALSE)
+
+overall_var_imp_df <- fold_var_imp_df |>
+  summarise(mean_dec = round(mean(MeanDecreaseGini),2), sd_dec = round(sd(MeanDecreaseGini),2), .by = Variable) |>
+  mutate(
+    `Gini Importance Rank` = row_number(),
+    `Mean Decrease in Gini Index (± Std. dev)` = paste(mean_dec,"±",sd_dec)) |>
+  left_join(vif_df, by = join_by("Variable" == "variable")) |>
+  mutate(
+    VIF = round(vif,2),
+    Variable = gsub("_"," ",Variable)) |>
+  select(-c(mean_dec,sd_dec,vmeoi,final_cor_thresh,vif))
+write.csv(
+  overall_var_imp_df, 
+  file = paste0(output_folder,"/",vmeoi,"_table_rf_OverallVarImp.csv"), 
+  row.names = FALSE, 
+  fileEncoding="Windows-1252")  # fileEncoding argument makes sure no special characters get appended
 
 ggplot(fold_var_imp_df, aes(y = Variable, x = MeanDecreaseGini)) +
   geom_boxplot() +
