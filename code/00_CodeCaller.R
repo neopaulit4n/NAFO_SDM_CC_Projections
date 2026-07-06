@@ -15,16 +15,16 @@ fold_metrics_summary_df <- data.frame(
 )
 
 # Loop through each combination of VME group, period, SSP, and subsampling option ----
-loop_seed <- switch(vmeoi,
-  "black_corals" = 412,
-  "small_gorgonians" = 412,
-  "large_sponges" = 413,
-  "sea_pens" = 414,
-  "large_gorgonians" = 415,
-  "bryozoan" = 416
-)
+# for (vmeoi in c("sea_pens","large_gorgonians")) {
 
-# for (vmeoi in vme_all) {
+  loop_seed <- switch(vmeoi,
+    "black_corals" = 412,
+    "small_gorgonians" = 412,
+    "large_sponges" = 413,
+    "sea_pens" = 414,
+    "large_gorgonians" = 415,
+    "bryozoan" = 416
+  )
 
   ## Create VMEOI directory if it doesn't exist already ----
   output_folder <- paste0("output/",vmeoi)

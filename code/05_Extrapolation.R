@@ -89,24 +89,24 @@ if (output_name == "P3.3-7.0" & vmeoi == "black_corals") {
 }
 
 # Fixing combinatorial layers for P2 SSP 1-2.6 for sea pens ----
-if (output_name == "P2.1-2.6" & vmeoi == "sea_pens") {
-  replace_layer <- terra::merge(extrapolation_rasters_mask[[1]], extrapolation_rasters_mask[[3]])
-  comp_layer <- cmip_layers_proj[[1]][[1]][[1]] %>%
-    terra::crop(replace_layer)
+# if (output_name == "P2.1-2.6" & vmeoi == "sea_pens") {
+#   replace_layer <- terra::merge(extrapolation_rasters_mask[[1]], extrapolation_rasters_mask[[3]])
+#   comp_layer <- cmip_layers_proj[[1]][[1]][[1]] %>%
+#     terra::crop(replace_layer)
 
-  missing_cells <- terra::logic(replace_layer, comp_layer, oper = "is.na") %>%
-    terra::mask(comp_layer)
+#   missing_cells <- terra::logic(replace_layer, comp_layer, oper = "is.na") %>%
+#     terra::mask(comp_layer)
 
-  extrapolation_rasters_mask[[2]] <- terra::resample(extrapolation_rasters_mask[[2]], missing_cells) %>%
-    terra::mask(missing_cells) %>%
-    terra::crop(missing_cells)
+#   extrapolation_rasters_mask[[2]] <- terra::resample(extrapolation_rasters_mask[[2]], missing_cells) %>%
+#     terra::mask(missing_cells) %>%
+#     terra::crop(missing_cells)
 
-  extrapolation_rasters_mask[[5]] <- terra::resample(extrapolation_rasters_mask[[5]], missing_cells) %>%
-    terra::mask(missing_cells) %>%
-    terra::crop(missing_cells)
+#   extrapolation_rasters_mask[[5]] <- terra::resample(extrapolation_rasters_mask[[5]], missing_cells) %>%
+#     terra::mask(missing_cells) %>%
+#     terra::crop(missing_cells)
 
-  rm(replace_layer, comp_layer, missing_cells)
-}
+#   rm(replace_layer, comp_layer, missing_cells)
+# }
 
 # dsmextra::map_extrapolation(map.type = "extrapolation", extrapolation.object = extrapolation_area[[1]])
 
@@ -186,6 +186,12 @@ extrap_exdet_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
 #   plot = extrap_exdet_maps,
 #   width = 10, height = 5, dpi = 300)
 
+## Create consistent colour scheme for variables in MIC plots ----
+mic_pal <- setNames(
+  paletteer::palettes_d$colorBlindness$paletteMartin[1:length(c("None",selected_vme_vars))],
+  c("None", selected_vme_vars)
+)
+
 ## Generate MIC maps ----
 extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
 
@@ -221,8 +227,13 @@ extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
     # {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))) > 0) {     
     #   tidyterra::geom_spatraster(data = extrapolation_rasters_mask[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(extrapolation_rasters_mask))]])
     # }} +
-    paletteer::scale_fill_paletteer_d(palette = "colorBlindness::paletteMartin", 
-      name = "Covariate", na.value = "transparent", na.translate = FALSE) +
+    # paletteer::scale_fill_paletteer_d(palette = "colorBlindness::paletteMartin", 
+    #   name = "Covariate", na.value = "transparent", na.translate = FALSE) +
+    scale_fill_manual(values = mic_pal, name = "Covariate", na.value = "transparent", na.translate = FALSE) +
+    guides(
+      fill = guide_legend(
+        title.position = "left",
+        title.theme = element_text(angle = 90, hjust = 0.5))) +
     # if (dataset == "PresenceOnly") {
     theme(
       # axis.text.y = element_blank(),
@@ -231,7 +242,7 @@ extrap_mic_maps <- lapply(c("PA","PresenceOnly"), function(dataset) {
       legend.position = "inside",
       legend.position.inside = c(0.85, 0.25),
       legend.box.just = c("left", "top"),
-      legend.title = element_text(size = 8),
+      legend.title = element_text(size = 8, angle = 90, hjust = 0.5),
       legend.text = element_text(size = 8),
       legend.key.size = unit(5, "mm")
       )

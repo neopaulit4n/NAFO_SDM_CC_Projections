@@ -10,8 +10,13 @@ extrapolation_rasters_mask <- lapply(
       gsub(paste0(vmeoi,"_extrap_"),"",list.files(path = paste0(output_folder, "/Extrapolations/rasters"), pattern = "baseline.+?tif$|2-4.5.+?tif$")))
 )
 
-# presenceonly/PA
+# Create consistent colour scheme for variables in MIC plots ----
+mic_pal <- setNames(
+  paletteer::palettes_d$colorBlindness$paletteMartin[1:length(c("None",selected_vme_vars))],
+  c("None", selected_vme_vars)
+)
 
+# Create plots ----
 p <- lapply(c("PA","PresenceOnly"), function(dataset) {
 
   lapply(c("baseline", period_all), function(poi) {
@@ -98,13 +103,18 @@ p <- lapply(c("PA","PresenceOnly"), function(dataset) {
       theme_classic() +
       # labs(title = ifelse(poi == "baseline", "Reference", paste(poi, "SSP 2-4.5"))) +
       tidyterra::geom_spatraster(data = mic_layer) +
-      paletteer::scale_fill_paletteer_d(palette = "colorBlindness::paletteMartin", 
-        name = "Covariate", na.value = "transparent", na.translate = FALSE) +
+      scale_fill_manual(values = mic_pal, name = "Covariate", na.value = "transparent", na.translate = FALSE) +
+      # paletteer::scale_fill_paletteer_d(palette = "colorBlindness::paletteMartin", 
+      #   name = "Covariate", na.value = "transparent", na.translate = FALSE) +
+      guides(
+        fill = guide_legend(
+          title.position = "left",
+          title.theme = element_text(angle = 90, hjust = 0.5))) +
       theme(
         legend.position = "inside",
         legend.position.inside = c(0.85, 0.25),
         legend.box.just = c("left", "top"),
-        legend.title = element_text(size = 8),
+        legend.title = element_text(size = 8, angle = 90, hjust = 0.5),
         legend.text = element_text(size = 8),
         legend.key.size = unit(5, "mm")
         )
@@ -118,6 +128,7 @@ p <- lapply(c("PA","PresenceOnly"), function(dataset) {
 
 # cowplot::plot_grid(plotlist = p[[1]], nrow = 2, byrow = FALSE)
 
+# Combine using patchwork and export ----
 library(patchwork)
 p$PA[[1]] + p$PA[[3]] + p$PA[[5]] + p$PA[[7]] + p$PA[[9]] +
   p$PA[[2]] + p$PA[[4]] + p$PA[[6]] + p$PA[[8]] + p$PA[[10]] +
