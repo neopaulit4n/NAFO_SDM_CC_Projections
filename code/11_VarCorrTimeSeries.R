@@ -37,7 +37,7 @@ lapply(1:length(all_layers_df), function(df) {
 all_layers_cor <- lapply(1:length(all_layers_df), function(layer) {
   cor_mat <- cor(all_layers_df[[layer]], method = "spearman", use = "complete.obs") |>
     as.data.frame()
-  write.csv(cor_mat, paste0(output_folder,"/VarCorrelations/02_CorMat/FullArea_",names(all_layers_df)[layer],"_cor.csv"))
+  # write.csv(cor_mat, paste0(output_folder,"/VarCorrelations/02_CorMat/FullArea_",names(all_layers_df)[layer],"_cor.csv"))
   cor_long <- as.data.frame(cor_mat) %>%
     rownames_to_column(var = "var1") %>%
     pivot_longer(-var1, names_to = "var2", values_to = "cor")
@@ -51,7 +51,7 @@ all_layers_cor <- lapply(1:length(all_layers_df), function(layer) {
   )
 
 # Output correlation plots ----
-lapply(names(all_layers_df), function(x) {
+all_layers_cor_plots <- lapply(names(all_layers_df), function(x) {
   df <- filter(all_layers_cor, PeriodSSP == x)
   x_name <- ifelse(x == "baseline", "Reference", paste(df$period[1], "SSP", df$ssp[1]))
   p <- ggplot(data = df, aes(x = var1, y = var2, fill = cor)) +
@@ -69,8 +69,8 @@ lapply(names(all_layers_df), function(x) {
         title = x_name)
   ggsave(
     filename = paste0(output_folder,"/VarCorrelations/03_CorPlots/FullArea_",x,".jpg"),
-    plot = p, width = 8, height = 6
-  )
+    plot = p, width = 8, height = 6)
+  return(p)
 })
 
 # Do the same but only for cells with overlapping VME P/A data ----
@@ -108,7 +108,7 @@ all_layers_overlap_cor <- lapply(1:length(all_layers_overlap), function(layer) {
   )
 
 # Output correlation plots for overlapping cells ----
-lapply(names(all_layers_overlap), function(x) {
+all_layers_overlap_cor_plots <- lapply(names(all_layers_overlap), function(x) {
   df <- filter(all_layers_overlap_cor, PeriodSSP == x)
   x_name <- ifelse(x == "baseline", "Reference", paste(df$period[1], "SSP", df$ssp[1]))
   p <- ggplot(data = df, aes(x = var1, y = var2, fill = cor)) +
@@ -126,8 +126,16 @@ lapply(names(all_layers_overlap), function(x) {
         title = x_name)
   ggsave(
     filename = paste0(output_folder,"/VarCorrelations/03_CorPlots/OverlapVME_",x,".jpg"),
-    plot = p, width = 8, height = 6
-  )
+    plot = p, width = 8, height = 6)
+  return(p)
+})
+names(all_layers_overlap_cor_plots) <- names(all_layers_overlap)
+
+# Create patchwork combined plot per SSP
+lapply(ssp_all, \(sspoi) {
+  plots_of_interest <- grep(sspoi, names(all_layers_overlap))
+  patchwork::wrap_plots(all_layers_overlap_cor_plots[plots_of_interest], nrow = 2, guides = "collect")
+  ggsave(filename = paste0(output_folder,"/VarCorrelations/03_CorPlots/OverlapVME_Combined_",sspoi,".jpg"), width = 10, height = 8, scale = 1.5)
 })
 
 # Calculate correlation differences between adjacent time periods and baseline over all SSPs for full NAFO area ----
