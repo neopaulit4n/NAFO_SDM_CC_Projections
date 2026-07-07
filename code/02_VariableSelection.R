@@ -6,6 +6,14 @@
 # 3) Remove correlated variables based on importance ranking
 # 4) VIF remaining variables
 
+# Table to save VIF values ----
+vif_df <- data.frame(
+  vmeoi = character(),
+  poi = character(),
+  sspoi = character(),
+  variable = character(),
+  vif = numeric())
+
 # Prepare VME group dataframe ----
 vme_terrain_vars <- filter(terrain_topvars, VME_Group == vmeoi) %>%
   pull(variable)
@@ -244,6 +252,7 @@ if (!any(vme_terrain_vars %in% selected_vme_vars)) {
 }
 
 vif_df <- rbind(vif_df, vif_df_i)
+write_csv(vif_df, paste0(output_folder,"/",vmeoi,"_summary_vif_values.csv"))
 
 # Create final dataframe with selected variables ----
 vme_df <- vme_df %>%
@@ -265,3 +274,7 @@ vme_layers_proj <- lapply(period_all, function(poi) {
     set_names(ssp_all)
 }) %>%
   set_names(period_all)
+
+# var_select_df <- filter(var_select_df, vmeoi == vmeoi) %>%
+#   janitor::adorn_totals("row")  
+# write_csv(var_select_df, paste0(output_folder,"/",vmeoi,"_summary_variable_selection.csv"))

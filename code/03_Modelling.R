@@ -157,6 +157,19 @@ fold_metrics_summary_df_i <- fold_metrics_df_i %>%
             sd_value = sd(value, na.rm = TRUE),
             .groups = "drop")
 fold_metrics_summary_df <- bind_rows(fold_metrics_summary_df, fold_metrics_summary_df_i)
+write_csv(fold_metrics_summary_df, paste0(output_folder,"/",vmeoi,"_summary_fold_metrics.csv"))
+
+fold_metrics_summary_pretty_df <- fold_metrics_summary_df |>
+  filter(metric %in% c("Balanced.Accuracy","Sensitivity","Specificity","TSS")) |>
+  mutate(
+    `Accuracy Measure` = gsub("\\."," ",metric),
+    `Reference Mean ± SD` = paste(round(mean_value,2), "±", round(sd_value,2))) |>
+  select(-c(VME_Group, metric, mean_value, sd_value))
+write.csv(
+  fold_metrics_summary_pretty_df, 
+  paste0(output_folder,"/",vmeoi,"_summary_select_fold_metrics.csv"), 
+  row.names = FALSE,
+  fileEncoding = "Windows-1252")  # to prevent it saving with extra special characters
 
 # Create spatial predictions stack ----
 rf_pred_foldstack_baseline <- terra::rast(fold_predictions_spatial_baseline_reclass)

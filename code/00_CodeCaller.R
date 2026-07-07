@@ -30,14 +30,6 @@ fold_metrics_summary_df <- data.frame(
   output_folder <- paste0("output/",vmeoi)
   if (!dir.exists(output_folder)) dir.create(output_folder)
   if (!dir.exists(paste0(output_folder,"/RFModelRasters"))) dir.create(paste0(output_folder,"/RFModelRasters"))
-
-  ## Table to save VIF values ----
-  vif_df <- data.frame(
-    vmeoi = character(),
-    poi = character(),
-    sspoi = character(),
-    variable = character(),
-    vif = numeric())
   
   ## Variable selection for this VME group ----
   cat("Running variable selection for VME group:", vmeoi, "\n")
@@ -46,13 +38,6 @@ fold_metrics_summary_df <- data.frame(
   ## Modelling for this VME group ----
   cat("Running modelling for VME group:", vmeoi, "\n")
   source("code/03_Modelling.R")
-  
-  ## Summary outputs by VME group ----
-  # var_select_df <- filter(var_select_df, vmeoi == vmeoi) %>%
-  #   janitor::adorn_totals("row")  
-  # write_csv(var_select_df, paste0(output_folder,"/",vmeoi,"_summary_variable_selection.csv"))
-  write_csv(vif_df, paste0(output_folder,"/",vmeoi,"_summary_vif_values.csv"))
-  write_csv(fold_metrics_summary_df, paste0(output_folder,"/",vmeoi,"_summary_fold_metrics.csv"))
 
   ## Extrapolation outputs loop ----
   for (i in 1:length(unlist(list(baseline = vme_layers_baseline, unlist(vme_layers_proj))))) {
