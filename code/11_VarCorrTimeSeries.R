@@ -234,13 +234,13 @@ all_layers_cor_adj_dif <- lapply(ssp_all, function(sspoi) {
     layers_to_compare[[5]] - layers_to_compare[[1]]
   )
   names(diff_layers) <- c(
-    "P1 - baseline",
+    "P1 - Reference",
     "P2 - P1",
     "P3 - P2",
     "P4 - P3",
-    "P2 - baseline",
-    "P3 - baseline",
-    "P4 - baseline"
+    "P2 - Reference",
+    "P3 - Reference",
+    "P4 - Reference"
   )
   return(diff_layers)
 }) %>%
@@ -250,8 +250,7 @@ all_layers_cor_adj_dif <- lapply(ssp_all, function(sspoi) {
 all_layers_cor_adj_dif_df <- lapply(1:length(all_layers_cor_adj_dif), function(x) {
   write.csv(
     all_layers_cor_adj_dif[x],
-    file = paste0(output_folder,"/VarCorrelations/04_CorDiffMat/OverlapVME_",names(all_layers_cor_adj_dif)[x],"_cordiff.csv")
-  )
+    file = paste0(output_folder,"/VarCorrelations/04_CorDiffMat/OverlapVME_",names(all_layers_cor_adj_dif)[x],"_cordiff.csv"))
   cor_long <- as.data.frame(all_layers_cor_adj_dif[[x]]) %>%
     rownames_to_column(var = "var1") %>%
     pivot_longer(-var1, names_to = "var2", values_to = "cordiff")
@@ -261,7 +260,7 @@ all_layers_cor_adj_dif_df <- lapply(1:length(all_layers_cor_adj_dif), function(x
   bind_rows(.id = "DiffID")
 
 # Output correlation difference plots ----
-lapply(names(all_layers_cor_adj_dif), function(x) {
+all_layers_cor_adj_dif_plots <- lapply(names(all_layers_cor_adj_dif), function(x) {
   df <- filter(all_layers_cor_adj_dif_df, DiffID == x)
   p <- ggplot(data = df, aes(x = var1, y = var2, fill = cordiff)) +
     geom_tile(colour = "black") +
@@ -274,10 +273,21 @@ lapply(names(all_layers_cor_adj_dif), function(x) {
           axis.text = element_text(size = 8),
           axis.line = element_blank(),
           axis.title = element_blank()) +
-    labs(fill = "Correlation difference",
+    labs(fill = "Correlation\ndifference",
          title = x)
   ggsave(
     filename = paste0(output_folder,"/VarCorrelations/05_CorDiffPlots/OverlapVME_",x,".jpg"),
-    plot = p, width = 8, height = 6
-  )
+    plot = p, width = 8, height = 6)
+  return(p)
 })
+names(all_layers_cor_adj_dif_plots) <- names(all_layers_cor_adj_dif)
+
+# Create combined plot for paper ----
+patchwork::wrap_plots(
+  list(all_layers_cor_adj_dif_plots$`1-2.6.P1 - Reference`, all_layers_cor_adj_dif_plots$`3-7.0.P2 - P1`),
+  nrow = 1,
+  guides = "collect") +
+  patchwork::plot_annotation(tag_levels = "A")
+ggsave(
+  filename = paste0(output_folder,"/VarCorrelations/05_CorDiffPlots/OverlapVME_CombinedPlot.jpg"), 
+  width = 12, height = 6, dpi = 300, scale = 1.3)
