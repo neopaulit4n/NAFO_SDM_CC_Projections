@@ -87,7 +87,6 @@ fold_metrics_summary_df <- data.frame(
 
   ### Run modelling ----
   source("code/07_ModellingNoVarSel.R")
-  write_csv(fold_metrics_summary_df_i, paste0(output_folder,"/",vmeoi,"_summary_fold_metrics_novarsel.csv"))
     
 # }
 
