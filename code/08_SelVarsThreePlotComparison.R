@@ -28,17 +28,21 @@ get_cmocean_palette <- function(variable) {
 
 if (!dir.exists(paste0(output_folder,"/SelVarsMaps"))) dir.create(paste0(output_folder,"/SelVarsMaps"))
 
-lapply(selected_cmip_vars, function(var) {
-  ggplot() +
+p_sel_cmip_vars <- lapply(selected_cmip_vars, function(var) {
+  p <- ggplot() +
     theme_bw() +
     tidyterra::geom_spatraster(data = env_layers_subset[[var]]) +
     facet_wrap(~ lyr) +
     cmocean::scale_fill_cmocean(
-      var,
+      "",
       name = get_cmocean_palette(str_extract(var, "^(.+?)_", group = 1)),
       na.value = "transparent"
     ) +
-    labs(title = var)
+    labs(title = gsub("_"," ",var))
   ggsave(paste0(output_folder,"/SelVarsMaps/",var,".jpg"), width = 8, height = 4, dpi = 300)
 })
+names(p_sel_cmip_vars) <- selected_cmip_vars
 
+# Create combined final formatted plot ----
+patchwork::wrap_plots(p_sel_cmip_vars, ncol = 2, axes = "collect")
+ggsave(paste0(output_folder,"/SelVarsMaps/CombinedThreePlotComparisons.jpg"), width = 10, height = 8, dpi = 300, scale = 1.2)
