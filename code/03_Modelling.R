@@ -201,6 +201,7 @@ write.csv(fold_var_imp_df,
 
 overall_var_imp_df <- fold_var_imp_df |>
   summarise(mean_dec = round(mean(MeanDecreaseGini),2), sd_dec = round(sd(MeanDecreaseGini),2), .by = Variable) |>
+  arrange(desc(mean_dec)) |>
   mutate(
     `Gini Importance Rank` = row_number(),
     `Mean Decrease in Gini Index (± Std. dev)` = paste(mean_dec,"±",sd_dec)) |>
@@ -224,7 +225,8 @@ ggsave(filename = paste0(output_folder,"/",vmeoi,"_plot_rf_VarImp.jpg"),
   width = 6, height = 4)
 
 # Variables in order of importance to sort them for other tables/figures ----
-vme_var_selection$selected_vars <- as.character(fold_var_imp_df$Variable[fold_var_imp_df$Fold == 1])
+vme_var_order <- fold_var_imp_df |> summarise(mean_dec = mean(MeanDecreaseGini), .by = Variable) |> arrange(desc(mean_dec)) |> pull(Variable) |> as.character()
+vme_var_selection$selected_vars <- vme_var_order
 
 # Extract partial dependence plots for each variable ----
 fold_partial_df <- lapply(fold_partialdep, function(fold) {
