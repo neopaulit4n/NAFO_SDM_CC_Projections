@@ -204,9 +204,9 @@ names(rf_pred_maps) <- metric_names
 
 # Create combined plot of baseline thresholded PA (A), MaxClassF (B), MaxClassAvgProb (C) ----
 library(patchwork)
-rf_pred_maps$MaxClass[[2]] + ggtitle("A") + 
+p <- rf_pred_maps$MaxClass[[2]] + ggtitle("A") +
   rf_pred_maps$MaxClassF[[2]] + ggtitle("B") +
   rf_pred_maps$MaxClassAvgProb[[2]] + ggtitle("C") +
   patchwork::plot_layout(nrow = 1)
-ggsave(paste0(output_folder,"/ModellingMaps/",vmeoi,"_baseline_threeplotcombined.jpg"),
-  width = 10, height = 3, dpi = 300)
+ggsave(paste0(output_folder,"/ModellingMaps/",vmeoi,"_baseline_threeplotcombined.jpg"), 
+  plot = p, width = 10, height = 3, dpi = 300, scale = 1.5)

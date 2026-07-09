@@ -37,7 +37,7 @@ lapply(1:length(all_layers_df), function(df) {
 all_layers_cor <- lapply(1:length(all_layers_df), function(layer) {
   cor_mat <- cor(all_layers_df[[layer]], method = "spearman", use = "complete.obs") |>
     as.data.frame()
-  # write.csv(cor_mat, paste0(output_folder,"/VarCorrelations/02_CorMat/FullArea_",names(all_layers_df)[layer],"_cor.csv"))
+  write.csv(cor_mat, paste0(output_folder,"/VarCorrelations/02_CorMat/FullArea_",names(all_layers_df)[layer],"_cor.csv"))
   cor_long <- as.data.frame(cor_mat) %>%
     rownames_to_column(var = "var1") %>%
     pivot_longer(-var1, names_to = "var2", values_to = "cor")
@@ -291,11 +291,11 @@ all_layers_cor_adj_dif_plots <- lapply(names(all_layers_cor_adj_dif), function(x
 names(all_layers_cor_adj_dif_plots) <- names(all_layers_cor_adj_dif)
 
 # Create combined plot for paper ----
-patchwork::wrap_plots(
+p <- patchwork::wrap_plots(
   list(all_layers_cor_adj_dif_plots$`1-2.6.P1 - Reference`, all_layers_cor_adj_dif_plots$`3-7.0.P2 - P1`),
   nrow = 1,
   guides = "collect") +
   patchwork::plot_annotation(tag_levels = "A")
 ggsave(
   filename = paste0(output_folder,"/VarCorrelations/05_CorDiffPlots/OverlapVME_CombinedPlot.jpg"), 
-  width = 12, height = 6, dpi = 300, scale = 1.3)
+  plot = p, width = 12, height = 6, dpi = 300, scale = 1.3)
