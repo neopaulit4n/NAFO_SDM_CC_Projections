@@ -4,7 +4,7 @@
 # Load data ----
 source("code/01_LoadData.R")
 
-vmeoi <- "large_sponges"
+vmeoi <- "large_gorgonians"
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----
 fold_metrics_summary_df <- data.frame(

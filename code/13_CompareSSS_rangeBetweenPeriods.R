@@ -1,14 +1,16 @@
 # Output three side-by-side plots for baseline/P1 SSP 1/P4 SSP 5 for VMEOI sel vars ----
 env_layers <- c(bathy_layers, cmip_layers, unlist(cmip_layers_proj))
 env_layer_names <- names(env_layers)
-z <- grep(paste0(c("BS_max","SSS_range"), collapse = "|"), env_layer_names, value=TRUE)
-env_layers_subset <- lapply(selected_cmip_vars, function(var) {
+# z <- grep(paste0(c("BS_max","SSS_range"), collapse = "|"), env_layer_names, value=TRUE)
+z <- grep("SSS_range", env_layer_names, value=TRUE)
+
+# env_layers_subset <- lapply(selected_cmip_vars, function(var) {
   layers <- env_layers[grep(var, z, value=TRUE)]
   layers <- layers[c(grep(paste0("^", var), names(layers)), grep("2-4\\.5", names(layers)))] |>
     # set_names(c("Reference", "P1 SSP 1-2.6", "P4 SSP 5-8.5")) |>
     terra::rast()
-}) |>
-  set_names(selected_cmip_vars)
+# }) |>
+#   set_names(selected_cmip_vars)
 
 get_cmocean_palette <- function(variable) {
   palette_map <- list(

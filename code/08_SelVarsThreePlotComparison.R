@@ -45,5 +45,8 @@ p_sel_cmip_vars <- lapply(vme_var_order[vme_var_order %in% selected_cmip_vars], 
 names(p_sel_cmip_vars) <- vme_var_order[vme_var_order %in% selected_cmip_vars]
 
 # Create combined final formatted plot ----
-patchwork::wrap_plots(p_sel_cmip_vars, ncol = 2, axes = "collect")
-ggsave(paste0(output_folder,"/SelVarsMaps/CombinedThreePlotComparisons.jpg"), width = 10, height = 8, dpi = 300, scale = 1.2)
+p <- patchwork::wrap_plots(p_sel_cmip_vars, ncol = 2, axes = "collect")
+p_height <- ifelse(length(p_sel_cmip_vars) > 6, 8, 6)
+ggsave(
+  paste0(output_folder,"/SelVarsMaps/CombinedThreePlotComparisons.jpg"), 
+  plot = p, width = 10, height = p_height, dpi = 300, scale = 1.2)
