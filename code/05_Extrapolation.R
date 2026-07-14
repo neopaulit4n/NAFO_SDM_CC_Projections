@@ -59,11 +59,6 @@ extrapolation_rasters_mask <- lapply(1:length(extrapolation_rasters), function(x
     layer <- terra::as.factor(layer)
     levels(layer) <- data.frame(id = 0:length(selected_vme_vars), covariate = c("None", selected_vme_vars))
   }
-  terra::writeRaster(
-    layer, 
-    filename = paste0(output_folder,"/Extrapolations/rasters/",vmeoi,"_extrap_",output_name,"_",names(extrapolation_rasters)[x],".tif"),
-    overwrite = TRUE
-  )
   return(layer)
 }) %>%
   set_names(names(extrapolation_rasters))
@@ -88,25 +83,36 @@ if (output_name == "P3.3-7.0" & vmeoi == "black_corals") {
   rm(replace_layer, comp_layer, missing_cells)
 }
 
-# Fixing combinatorial layers for P2 SSP 1-2.6 for sea pens ----
-# if (output_name == "P2.1-2.6" & vmeoi == "sea_pens") {
-#   replace_layer <- terra::merge(extrapolation_rasters_mask[[1]], extrapolation_rasters_mask[[3]])
-#   comp_layer <- cmip_layers_proj[[1]][[1]][[1]] %>%
-#     terra::crop(replace_layer)
+# Fixing combinatorial layers for P2 SSP 2-4.5 for bryozoans ----
+if (output_name == "P2.2-4.5" & vmeoi == "bryozoan") {
+  replace_layer <- terra::merge(extrapolation_rasters_mask[[7]], extrapolation_rasters_mask[[9]])
+  comp_layer <- cmip_layers_proj[[1]][[1]][[1]] %>%
+    terra::crop(replace_layer)
 
-#   missing_cells <- terra::logic(replace_layer, comp_layer, oper = "is.na") %>%
-#     terra::mask(comp_layer)
+  missing_cells <- 
+    terra::logic(replace_layer, comp_layer, oper = "is.na") %>%
+    terra::mask(comp_layer)
 
-#   extrapolation_rasters_mask[[2]] <- terra::resample(extrapolation_rasters_mask[[2]], missing_cells) %>%
-#     terra::mask(missing_cells) %>%
-#     terra::crop(missing_cells)
+  extrapolation_rasters_mask[[8]] <- 
+    terra::resample(extrapolation_rasters_mask[[8]], missing_cells) %>%
+    terra::mask(missing_cells) %>%
+    terra::crop(missing_cells)
 
-#   extrapolation_rasters_mask[[5]] <- terra::resample(extrapolation_rasters_mask[[5]], missing_cells) %>%
-#     terra::mask(missing_cells) %>%
-#     terra::crop(missing_cells)
+  extrapolation_rasters_mask[[11]] <- 
+    terra::resample(extrapolation_rasters_mask[[11]], missing_cells) %>%
+    terra::mask(missing_cells) %>%
+    terra::crop(missing_cells)
 
-#   rm(replace_layer, comp_layer, missing_cells)
-# }
+  rm(replace_layer, comp_layer, missing_cells)
+}
+
+# Save rasters ----
+lapply(
+  1:length(extrapolation_rasters_mask), 
+  \(x) terra::writeRaster(
+    extrapolation_rasters_mask[[x]], 
+    filename = paste0(output_folder,"/Extrapolations/rasters/",vmeoi,"_extrap_",output_name,"_",names(extrapolation_rasters_mask)[x],".tif"),
+    overwrite = TRUE))
 
 # dsmextra::map_extrapolation(map.type = "extrapolation", extrapolation.object = extrapolation_area[[1]])
 

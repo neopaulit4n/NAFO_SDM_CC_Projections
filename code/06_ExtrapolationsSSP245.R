@@ -16,6 +16,23 @@ mic_pal <- setNames(
   c("None", selected_vme_vars)
 )
 
+# Extract limits for univariate and combinatorial legends ----
+lim_comb <- lapply(
+  grep("ExDet\\.combinatorial", names(extrapolation_rasters_mask)),
+  \(x) {
+    m <- as.matrix(extrapolation_rasters_mask[[x]])
+    m_lim <- c(min(m, na.rm = TRUE), max(m, na.rm = TRUE))
+    return(m_lim)})
+lim_comb <- c(min(unlist(lapply(lim_comb, "[[", 1))), max(unlist(lapply(lim_comb, "[[", 2))))
+
+lim_uni <- lapply(
+  grep("ExDet\\.univariate", names(extrapolation_rasters_mask)),
+  \(x) {
+    m <- as.matrix(extrapolation_rasters_mask[[x]])
+    m_lim <- c(min(m, na.rm = TRUE), max(m, na.rm = TRUE))
+    return(m_lim)})
+lim_uni <- c(min(unlist(lapply(lim_uni, "[[", 1))), max(unlist(lapply(lim_uni, "[[", 2))))
+
 # Create plots ----
 p <- lapply(c("PA","PresenceOnly"), function(dataset) {
 
@@ -28,7 +45,7 @@ p <- lapply(c("PA","PresenceOnly"), function(dataset) {
       tidyterra::geom_spatraster(data = r[[grep(paste(dataset,"ExDet","analogue", sep = "\\."),names(r))]])
       }} +
       scale_fill_distiller(
-        name = "Analogue",
+        name = "An",
         palette = "Greys",
         limits = c(0, 1),
         direction = 1,
@@ -39,7 +56,7 @@ p <- lapply(c("PA","PresenceOnly"), function(dataset) {
       tidyterra::geom_spatraster(data = r[[grep(paste(dataset,"ExDet","univariate", sep = "\\."),names(r))]])
       }} +
       scale_fill_distiller(
-        name = "Univariate",
+        name = "Un",
         palette = "Oranges",
         limits = lim_uni,
         direction = 1,
@@ -50,7 +67,7 @@ p <- lapply(c("PA","PresenceOnly"), function(dataset) {
       tidyterra::geom_spatraster(data = r[[grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(r))]])
       }} +
       scale_fill_distiller(
-        name = "Combinatorial",
+        name = "Co",
         palette = "Greens",
         limits = lim_comb,
         direction = 1,
@@ -77,15 +94,15 @@ p <- lapply(c("PA","PresenceOnly"), function(dataset) {
     # }}
 
     mic_layer_analogue <- {if (length(grep(paste(dataset,"ExDet","analogue", sep = "\\."),names(r))) > 0) { 
-    r[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(r))]]
+      r[[grep(paste(dataset,"mic","analogue", sep = "\\."),names(r))]]
     }}
 
     mic_layer_univariate <- {if (length(grep(paste(dataset,"ExDet","univariate", sep = "\\."),names(r))) > 0) { 
-        r[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(r))]]
+      r[[grep(paste(dataset,"mic","univariate", sep = "\\."),names(r))]]
     }}
 
     mic_layer_combinatorial <- {if (length(grep(paste(dataset,"ExDet","combinatorial", sep = "\\."),names(r))) > 0) { 
-        r[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(r))]]
+      r[[grep(paste(dataset,"mic","combinatorial", sep = "\\."),names(r))]]
     }}
 
     mic_layer_list <- list(mic_layer_analogue, mic_layer_univariate, mic_layer_combinatorial)
@@ -130,13 +147,17 @@ p <- lapply(c("PA","PresenceOnly"), function(dataset) {
 
 # Combine using patchwork and export ----
 library(patchwork)
-p$PA[[1]] + p$PA[[3]] + p$PA[[5]] + p$PA[[7]] + p$PA[[9]] +
+patch_p <- p$PA[[1]] + p$PA[[3]] + p$PA[[5]] + p$PA[[7]] + p$PA[[9]] +
   p$PA[[2]] + p$PA[[4]] + p$PA[[6]] + p$PA[[8]] + p$PA[[10]] +
   patchwork::plot_layout(axes = "collect", axis_titles = "collect", nrow = 2)
-ggsave(paste0(output_folder,"/Extrapolations/",vmeoi,"_extrapolations_SSP2-4.5_PA.jpg"), width = 22, height = 11, dpi = 500)
+ggsave(
+  paste0(output_folder,"/Extrapolations/",vmeoi,"_extrapolations_SSP2-4.5_PA.jpg"), 
+  plot = patch_p, width = 22, height = 11, dpi = 500)
 
-p$PresenceOnly[[1]] + p$PresenceOnly[[3]] + p$PresenceOnly[[5]] + p$PresenceOnly[[7]] + p$PresenceOnly[[9]] +
+patch_p <- p$PresenceOnly[[1]] + p$PresenceOnly[[3]] + p$PresenceOnly[[5]] + p$PresenceOnly[[7]] + p$PresenceOnly[[9]] +
   p$PresenceOnly[[2]] + p$PresenceOnly[[4]] + p$PresenceOnly[[6]] + p$PresenceOnly[[8]] + p$PresenceOnly[[10]] +
   patchwork::plot_layout(axes = "collect", axis_titles = "collect", nrow = 2)
-ggsave(paste0(output_folder,"/Extrapolations/",vmeoi,"_extrapolations_SSP2-4.5_PresenceOnly.jpg"), width = 22, height = 11, dpi = 500)
+ggsave(
+  paste0(output_folder,"/Extrapolations/",vmeoi,"_extrapolations_SSP2-4.5_PresenceOnly.jpg"), 
+  plot = patch_p, width = 22, height = 11, dpi = 500)
 
