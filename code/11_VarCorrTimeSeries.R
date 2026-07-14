@@ -9,14 +9,14 @@ if (!dir.exists(paste0(output_folder,"/VarCorrelations/04_CorDiffMat"))) dir.cre
 if (!dir.exists(paste0(output_folder,"/VarCorrelations/05_CorDiffPlots"))) dir.create(paste0(output_folder,"/VarCorrelations/05_CorDiffPlots"))
 
 # Plot correlations between variable pairs over time
-baseline_layers <- c(cmip_layers, bathy_layers[vme_terrain_vars]) |>
+baseline_layers <- c(cmip_layers, bathy_layers[vme_terrain_vars_start]) |>
   terra::rast()
 # names(baseline_layers) <- c(names(cmip_layers), vme_terrain_vars)
 
 projection_layers <- unlist(cmip_layers_proj, recursive = FALSE) |>
   lapply(X = _, 
     function(layer) {
-      rast_result <- c(layer, bathy_layers[vme_terrain_vars]) |>
+      rast_result <- c(layer, bathy_layers[vme_terrain_vars_start]) |>
         terra::rast()
       names(rast_result) <- gsub("GEBCO2024_FS005_StudyArea_","", names(rast_result))
       return(rast_result)
@@ -206,7 +206,7 @@ lapply(names(all_layers_cor_adj_dif), function(x) {
           axis.text = element_text(size = 8),
           axis.line = element_blank(),
           axis.title = element_blank()) +
-    labs(fill = "Correlation difference",
+    labs(fill = "Correlation\ndifference",
          title = x)
   ggsave(
     filename = paste0(output_folder,"/VarCorrelations/05_CorDiffPlots/FullArea_",x,".jpg"),

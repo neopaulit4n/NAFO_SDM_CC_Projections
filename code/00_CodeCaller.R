@@ -4,15 +4,14 @@
 # Load data ----
 source("code/01_LoadData.R")
 
-vmeoi <- "large_gorgonians"
+vmeoi <- "bryozoan"
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----
 fold_metrics_summary_df <- data.frame(
   VME_Group = character(),
   metric = character(),
   mean_value = numeric(),
-  sd_value = numeric()
-)
+  sd_value = numeric())
 
 # Loop through each combination of VME group, period, SSP, and subsampling option ----
 # for (vmeoi in c("sea_pens","large_gorgonians")) {

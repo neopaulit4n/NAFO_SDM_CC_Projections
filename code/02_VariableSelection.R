@@ -236,7 +236,7 @@ vif_df_i <- data.frame(
   final_cor_thresh = vme_var_selection$final_cor_threshold
 )
 
-# Re-append VME terrain variable(s) if not selected ----
+# Re-append VME terrain variable if not selected ----
 if (!any(vme_terrain_vars %in% selected_vme_vars)) {
   selected_vme_vars <- unique(c(vme_terrain_vars, selected_vme_vars))
   vif_df_i <- rbind(
@@ -260,6 +260,11 @@ vme_df <- vme_df %>%
 
 # Extract names of selected CMIP vars ----
 selected_cmip_vars <- selected_vme_vars[selected_vme_vars %in% names(cmip_layers)]
+
+# Remove unselected terrain variables in case of two terrain variables ----
+# If there are two starting terrain variables but only one gets selected, remove the unselected one from the terrain variables (case came up with bryozoans)
+vme_terrain_vars_start <- vme_terrain_vars
+vme_terrain_vars <- vme_terrain_vars[vme_terrain_vars %in% selected_vme_vars]
 
 # Prepare variable layer rasters for spatial predictions ----
 cat("Preparing variable raster layers for spatial predictions\n")
