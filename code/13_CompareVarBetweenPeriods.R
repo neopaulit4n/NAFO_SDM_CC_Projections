@@ -1,8 +1,9 @@
 # Output three side-by-side plots for baseline/P1 SSP 1/P4 SSP 5 for VMEOI sel vars ----
 env_layers <- c(bathy_layers, cmip_layers, unlist(cmip_layers_proj))
 env_layer_names <- names(env_layers)
+var <- "BS_max"
 # z <- grep(paste0(c("BS_max","SSS_range"), collapse = "|"), env_layer_names, value=TRUE)
-z <- grep("SSS_range", env_layer_names, value=TRUE)
+z <- grep(var, env_layer_names, value=TRUE)
 
 # env_layers_subset <- lapply(selected_cmip_vars, function(var) {
   layers <- env_layers[grep(var, z, value=TRUE)]
@@ -49,10 +50,10 @@ names(diff_plots) <- c("P2 SSP 2-4.5 - Reference","P4 SSP 2-4.5 - Reference", "P
 
 
 
-ggplot() +
+p <- ggplot() +
   theme_bw() +
   tidyterra::geom_spatraster(data = diff_plots) +
   facet_wrap(~ lyr) +
   scale_fill_gradient2(name = "Difference", low = scales::muted("blue"), high = scales::muted("red"), na.value = "transparent") +
-  labs(title = var)
-ggsave(paste0(output_folder,"/",vmeoi,"_SSS_range_diff_maps.jpg"), width = 8, height = 4, dpi = 300)
+  labs(title = gsub("_"," ",var))
+ggsave(paste0(output_folder,"/",vmeoi,"_BS_max_diff_maps.jpg"), plot = p, width = 8, height = 4, dpi = 300)
