@@ -4,7 +4,7 @@
 # Load data ----
 source("code/01_LoadData.R")
 
-vmeoi <- "large_gorgonians"
+vmeoi <- "boltenia"
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----
 fold_metrics_summary_df <- data.frame(
@@ -22,7 +22,8 @@ fold_metrics_summary_df <- data.frame(
     "large_sponges" = 413,
     "sea_pens" = 414,
     "large_gorgonians" = 415,
-    "bryozoan" = 416
+    "bryozoan" = 416,
+    "boltenia" = 417
   )
 
   ## Create VMEOI directory if it doesn't exist already ----
