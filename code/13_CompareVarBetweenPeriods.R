@@ -1,7 +1,7 @@
 # Output three side-by-side plots for baseline/P1 SSP 1/P4 SSP 5 for VMEOI sel vars ----
 env_layers <- c(bathy_layers, cmip_layers, unlist(cmip_layers_proj))
 env_layer_names <- names(env_layers)
-var <- "BS_max"
+var <- "SSS_range"
 # z <- grep(paste0(c("BS_max","SSS_range"), collapse = "|"), env_layer_names, value=TRUE)
 z <- grep(var, env_layer_names, value=TRUE)
 
