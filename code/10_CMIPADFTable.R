@@ -116,7 +116,7 @@ df <- df4 |>
       "^MLD_Sp" = "Spring Mixed Layer Depth",
       "^MLD_Su" = "Summer Mixed Layer Depth",
       "^MLD_F" = "Fall Mixed Layer Depth",
-      # "^MLD" = "Annual Mixed Layer Depth"  # abbreviation will need to be changed to "MLD_An"
+      "^MLD(_[[:lower:]]+$)" = "Annual Mixed Layer Depth\\1",
       
       # Statistics
       "_min" = " Minimum",
