@@ -86,6 +86,8 @@ for (i in 1:10) {
   fold_partialdep[[i]] <- lapply(selected_vme_vars, function(var) {
     pdp::partial(fold_model[[i]], 
       pred.var = var,
+      which.class = "Presence",
+      prob = TRUE,
       plot = FALSE) %>%
       mutate(Variable = colnames(.)[1]) %>%
       rename(value = var)
@@ -236,7 +238,7 @@ fold_partial_df <- lapply(fold_partialdep, function(fold) {
   arrange(Fold, Variable, value) %>%
   mutate(Fold = as.factor(as.numeric(Fold)),
          Variable = factor(Variable, levels = rev(levels(fold_var_imp_df$Variable))))
-write.csv(fold_partial_df, file = paste0(output_folder,"/",vmeoi,"_table_rf_PartialDep.csv"), row.names = FALSE)
+write.csv(fold_partial_df, file = paste0(output_folder,"/",vmeoi,"_table_rf_PartialDep_Pres.csv"), row.names = FALSE)
 
 ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
   geom_line() +
@@ -244,7 +246,7 @@ ggplot(fold_partial_df, aes(x = value, y = yhat, colour = Fold)) +
   theme_bw() +
   labs(x = "Predictor Value", y = "Partial Dependence")
 
-ggsave(filename = paste0(output_folder,"/",vmeoi,"_plot_rf_PartialDep.jpg"),
+ggsave(filename = paste0(output_folder,"/",vmeoi,"_plot_rf_PartialDep_Pres.jpg"),
   width = 10, height = 8)
 
 # Output non-reclassed/non-thresholded presence probability rasters ----
