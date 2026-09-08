@@ -60,8 +60,8 @@ baseline_df <- readRDS("data/processed/cmip_ens_1993_2014_df.rds") %>%
       list(
         mean = ~mean(.x, na.rm = TRUE),
         min = ~min(.x, na.rm = TRUE),
-        max = ~max(.x, na.rm = TRUE), 
-        range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)
+        max = ~max(.x, na.rm = TRUE)#, 
+        # range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)
       ),
       .names = "{col}_{fn}"),
     .by = c(lon, lat))
@@ -74,8 +74,8 @@ cmip_df_period_ssp <- cmip_df %>%
       list(
         mean = ~mean(.x, na.rm = TRUE),
         min = ~min(.x, na.rm = TRUE),
-        max = ~max(.x, na.rm = TRUE), 
-        range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)
+        max = ~max(.x, na.rm = TRUE)#, 
+        # range = ~max(.x, na.rm = TRUE) - min(.x, na.rm = TRUE)
       ),
       .names = "{col}_{fn}"),
     .by = c(lon, lat, period, ssp))

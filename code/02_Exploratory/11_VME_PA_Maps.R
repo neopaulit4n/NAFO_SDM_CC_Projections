@@ -11,6 +11,8 @@ sa <- terra::rast("data/raw/Bathy_Layers/GEBCO2024_FS005.tif") %>%
   sf::st_transform(4326) %>%
   summarise(geometry = sf::st_union(geometry))
 
+bathy_rast <- terra::rast("data/raw/Bathy_Layers/GEBCO2024_FS005.tif")
+
 # Bathymetry
 bathy_noaa <- readRDS("data/raw/Mapping_Layers/bathy_noaa.rds")
 
@@ -31,18 +33,19 @@ abs <- filter(pa, VME_P_A == 0)
 
 ggplot() +
   theme_classic() +    
-  geom_contour_filled(
-    data = bathy_noaa, 
-    aes(x = x, y = y, z = z), 
-    breaks = c(0,-100,-200,-500,-1000,-2000,-2500,-3000,-4000,-10000),
-    color = "black", 
-    linewidth = 0.1, 
-    alpha = 0.4) +
-  scale_fill_discrete(palette = "Greys") +
+  # geom_contour_filled(
+  #   data = bathy_noaa, 
+  #   aes(x = x, y = y, z = z), 
+  #   breaks = c(0,-100,-200,-500,-1000,-2000,-2500,-3000,-4000,-10000),
+  #   color = "black", 
+  #   linewidth = 0.1, 
+  #   alpha = 0.4) +
+  tidyterra::geom_spatraster(data = bathy_rast) +
+  # scale_fill_discrete(palette = "Greys") +
   geom_sf(data = sa, colour = "black", fill = "transparent", linewidth = 1.1) +
   geom_sf(data = abs, colour = "black", size = 0.5) +
   geom_sf(data = pres, colour = "black", fill = "red", shape = 21, size  = 3) +
   scale_x_continuous(expand = c(0,0)) +
   scale_y_continuous(expand = c(0,0)) +
   theme(axis.title = element_blank())
-ggsave(paste0(output_folder,"/",vmeoi,"_PA_Map.jpg"), dpi = 300, width = 10, height = 10)
+# ggsave(paste0(output_folder,"/",vmeoi,"_PA_Map.jpg"), dpi = 300, width = 10, height = 10)
