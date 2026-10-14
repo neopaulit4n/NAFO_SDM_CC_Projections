@@ -1,0 +1,54 @@
+Package: NAFOSDM
+Title: NAFO Regulatory Area Species Distribution Models under Climate Change Projections
+Version: 0.0.0.9000
+Authors@R: c(
+    person("Neo", "Paulin", , "Neo.Paulin@dfo-mpo.gc.ca", role = c("aut", "cre"),
+           comment = "Fisheries and Oceans Canada (DFO/MPO)"),
+    person("inSileco", role = "rev", email = "info@insileco.io")
+  )
+Description: Analysis project (not an installable package). This file lists
+    the R packages needed to run the scripts in R/analysis/ and
+    R/data-raw/, so they can be installed without renv, e.g. with
+    pak::local_install_deps() or remotes::install_deps(dependencies = TRUE).
+    Imports are needed by the core workflow (R/analysis/00_CodeCaller.R and
+    the scripts it sources); Suggests are needed only by R/data-raw/ (gsw,
+    ncdf4, R.utils) and R/archive/exploratory/.
+License: GPL-3
+Encoding: UTF-8
+Depends:
+    R (>= 4.2.0)
+Imports:
+    car,
+    caret,
+    cmocean,
+    dplyr (>= 1.2.0),
+    dsmextra,
+    ggnewscale,
+    ggplot2,
+    gt,
+    officer,
+    paletteer,
+    patchwork,
+    pdp,
+    PresenceAbsence,
+    randomForest,
+    scales,
+    sf,
+    sp,
+    stringr (>= 1.5.0),
+    terra,
+    tidyterra,
+    tidyverse,
+    tseries,
+    xml2
+Suggests:
+    cowplot,
+    gsw,
+    leaflet,
+    ncdf4,
+    pROC,
+    R.utils,
+    ROSE,
+    tcltk2
+Remotes:
+    densitymodelling/dsmextra

@@ -1,0 +1,12 @@
+^renv$
+^renv\.lock$
+^\.renvignore$
+^R/analysis$
+^R/archive$
+^R/data-raw$
+^data$
+^doc$
+^output$
+^README\.qmd$
+^.*\.Rproj$
+^desktop\.ini$

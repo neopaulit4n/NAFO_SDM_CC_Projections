@@ -1,0 +1,3 @@
+# Archived code is kept for the record only. Excluded so its packages are not
+# picked up by renv::dependencies() / renv::snapshot().
+/R/archive/

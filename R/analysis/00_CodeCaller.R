@@ -1,0 +1,102 @@
+# Looping through periods/SSPs/VME groups
+
+# Load data ----
+source("R/analysis/01_LoadData.R")
+
+vmeoi <- "black_corals" # "boltenia"
+
+# Initialise fold metrics dataframe to save results from each fold of each iteration ----
+fold_metrics_summary_df <- data.frame(
+  VME_Group = character(),
+  metric = character(),
+  mean_value = numeric(),
+  sd_value = numeric()
+)
+
+# Loop through each combination of VME group, period, SSP, and subsampling option ----
+# for (vmeoi in c("sea_pens","large_gorgonians")) {
+
+loop_seed <- switch(
+  vmeoi,
+  "black_corals" = 412,
+  "small_gorgonians" = 412,
+  "large_sponges" = 413,
+  "sea_pens" = 414,
+  "large_gorgonians" = 415,
+  "bryozoan" = 416,
+  "boltenia" = 417
+)
+
+## Create VMEOI directory if it doesn't exist already ----
+output_folder <- paste0("output/", vmeoi)
+if (!dir.exists(output_folder)) {
+  dir.create(output_folder)
+}
+if (!dir.exists(paste0(output_folder, "/RFModelRasters"))) {
+  dir.create(paste0(output_folder, "/RFModelRasters"))
+}
+
+## Variable selection for this VME group ----
+cat("Running variable selection for VME group:", vmeoi, "\n")
+source("R/analysis/02_VariableSelection.R")
+
+## Modelling for this VME group ----
+cat("Running modelling for VME group:", vmeoi, "\n")
+source("R/analysis/03_Modelling.R")
+
+## Extrapolation outputs loop ----
+ls_pred_grid_all <- c(baseline = vme_layers_baseline, unlist(vme_layers_proj))
+for (i in seq_along(ls_pred_grid_all)) {
+  prediction_grid <- ls_pred_grid_all[[i]]
+  output_name <- names(ls_pred_grid_all)[i]
+  cat(paste(
+    "Computing extrapolations for",
+    names(ls_pred_grid_all)[i],
+    "\n"
+  ))
+  # KC: would make more sense to have tested functions rather than a script
+  source("R/analysis/05_Extrapolation.R")
+}
+
+## Extrapolations for P1-4 for SSP 2-4.5 (specific figures within body of text) ----
+cat("Computing specific extrapolations for SSP 2-4.5\n")
+source("R/analysis/06_ExtrapolationsSSP245.R")
+
+## Extrapolations percentages tables overall and by variable ----
+cat("Creating extrapolation percentages tables\n")
+source("R/analysis/12_ExtrapolationPercTables.R")
+
+## Maps per VME group ----
+cat("Creating final modelling maps\n")
+source("R/analysis/04_Mapping.R")
+
+## Output functional response curves ----
+cat("Creating functional response curves\n")
+source("R/analysis/09_FunctionalResponseCurves.R")
+
+## Environmental variable layer maps ----
+cat("Outputting CMIP selected variables three-plot comparisons\n")
+source("R/analysis/08_SelVarsThreePlotComparison.R")
+
+## Correlation matrix plots + correlation differences ----
+cat("Extracting correlation matrix tables, plots, and differences\n")
+source("R/analysis/11_VarCorrTimeSeries.R")
+
+## Selected CMIP vars ADF + Tukey table ----
+cat("Outputting CMIP variable ADF & Tukey results table\n")
+source("R/analysis/10_CMIPADFTable.R")
+
+## Re-run modelling without variable selection (all CMIP, still only top selected terrain variable) ----
+### Prepare VME group dataframe ----
+vme_terrain_vars <- filter(terrain_topvars, VME_Group == vmeoi) %>%
+  pull(variable)
+vme_vars <- c(vme_terrain_vars, names(cmip_layers))
+vme_df <- filter(cmip_comb_df, VME_Group == vmeoi) %>%
+  select(all_of(c("VME_P_A", vme_vars)))
+
+selected_vme_vars <- vme_vars
+
+### Run modelling ----
+source("R/analysis/07_ModellingNoVarSel.R")
+
+# }
