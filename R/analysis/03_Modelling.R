@@ -23,6 +23,9 @@ for (i in 1:10) {
 
   # Train model on this fold ----
   cat("Training fold", i, "\n")
+
+  sampsize <- rep(sum(vme_df$VME_P_A[train_idx] == "Presence"), 2)
+
   set.seed(loop_seed + i)
   fold_model[[i]] <- randomForest::randomForest(
     VME_P_A ~ .,
@@ -30,7 +33,8 @@ for (i in 1:10) {
     ntree = 500,
     mtry = floor(sqrt(ncol(vme_df) - 1)),
     strata = vme_df$VME_P_A[train_idx],
-    replace = FALSE,
+    sampsize = sampsize,
+    replace = TRUE,
     importance = TRUE
   )
 
