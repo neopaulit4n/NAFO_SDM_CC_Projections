@@ -116,25 +116,34 @@ sa_lims <- c(min(sa_lims$X), max(sa_lims$X), min(sa_lims$Y), max(sa_lims$Y))
 # Transform CMIP data to raster ----
 cat("Transforming CMIP dataframe to raster layers\n")
 transform_cmip_to_raster <- function(data, varstat, poi = NULL, sspoi = NULL) {
+  
   # Select a layer of data to raster
   df <- data %>%
     filter(if (!is.null(sspoi)) ssp == sspoi else TRUE) %>%
     filter(if (!is.null(poi)) period == poi else TRUE) %>%
     select(lon, lat, !!sym(varstat)) %>%
     sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
-
+  
   # Transform into terra vector of points
   pts <- terra::vect(df)
+  # pts_rast <- terra::rast(df, type = "xyz", crs = "EPSG:4326")
 
   # Determine resolution of data in degrees
   res <- round(sort(unique(data$lon))[2] - sort(unique(data$lon))[1], 5)
+  
+  # Get extent
+  pts_ext <- terra::vect(terra::ext(pts))
+  pts_template_ext <- terra::ext(
+    terra::ext(pts)[1] - res/2,
+    terra::ext(pts)[2] + res/2,
+    terra::ext(pts)[3] - res/2,
+    terra::ext(pts)[4] + res/2
+  ) %>%
+    terra::vect()
 
   # Create template raster
   rast_template <- terra::rast(
-    xmin = sa_lims[1],
-    xmax = sa_lims[2],
-    ymin = sa_lims[3],
-    ymax = sa_lims[4],
+    x = pts_template_ext,
     resolution = res,
     crs = "EPSG:4326"
   )
