@@ -101,8 +101,11 @@ create_spatial_mask <- function() {
     crs = sf::st_crs(sa)
   )
 
+  # Extend SA with buffer area to make sure there are no gaps along the boundary during interpolation
+  sa_buff <- sf::st_buffer(sa, dist = 30000)
+
   # Check which points are within study area
-  within_study_area <- sf::st_within(coords_sf, sa, sparse = FALSE)
+  within_study_area <- sf::st_within(coords_sf, sa_buff, sparse = FALSE)
   mask <- rowSums(within_study_area) > 0
 
   # Convert back to matrix form matching netCDF dimensions
