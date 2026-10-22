@@ -25,13 +25,21 @@ leaflet::leaflet() %>%
     color = "black",
     weight = 1,
     opacity = 0.7) %>%
+  
+  # Add study area boundary
+  leaflet::addPolygons(data = sa,
+    fillColor = "transparent",
+    fillOpacity = 0,
+    color = "red",
+    weight = 1,
+    opacity = 0.7) %>%
 
   # Add CMIP points
-  # leaflet::addMarkers(
-  #   data = pts,
-  #   icon = cross_icon,
-  #   group = "CMIP points"
-  # ) %>%
+  leaflet::addMarkers(
+    data = pts,
+    icon = cross_icon,
+    group = "CMIP points"
+  ) %>%
   
   leaflet::addCircleMarkers(
     data = pts_template_ext,

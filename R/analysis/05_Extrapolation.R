@@ -96,33 +96,33 @@ patch_combinatorial <- function(rasters, ref_names, target_names, ref_grid) {
 }
 
 ## P3 SSP 3-7.0 for black corals ----
-if (output_name == "P3.3-7.0" & vmeoi == "black_corals") {
-  extrapolation_rasters_mask <- patch_combinatorial(
-    extrapolation_rasters_mask,
-    ref_names = c("PresenceOnly.mic.univariate", "PresenceOnly.mic.analogue"),
-    target_names = c(
-      "PresenceOnly.ExDet.combinatorial",
-      "PresenceOnly.mic.combinatorial"
-    ),
-    ref_grid = cmip_layers_proj[[1]][[1]][[1]]
-  )
-}
+# if (output_name == "P3.3-7.0" & vmeoi == "black_corals") {
+#   extrapolation_rasters_mask <- patch_combinatorial(
+#     extrapolation_rasters_mask,
+#     ref_names = c("PresenceOnly.mic.univariate", "PresenceOnly.mic.analogue"),
+#     target_names = c(
+#       "PresenceOnly.ExDet.combinatorial",
+#       "PresenceOnly.mic.combinatorial"
+#     ),
+#     ref_grid = cmip_layers_proj[[1]][[1]][[1]]
+#   )
+# }
 
-## P2 SSP 2-4.5 for bryozoans ----
-if (output_name == "P2.2-4.5" & vmeoi == "bryozoan") {
-  extrapolation_rasters_mask <- patch_combinatorial(
-    extrapolation_rasters_mask,
-    ref_names = c(
-      "PresenceOnly.ExDet.univariate",
-      "PresenceOnly.ExDet.analogue"
-    ),
-    target_names = c(
-      "PresenceOnly.ExDet.combinatorial",
-      "PresenceOnly.mic.combinatorial"
-    ),
-    ref_grid = cmip_layers_proj[[1]][[1]][[1]]
-  )
-}
+# ## P2 SSP 2-4.5 for bryozoans ----
+# if (output_name == "P2.2-4.5" & vmeoi == "bryozoan") {
+#   extrapolation_rasters_mask <- patch_combinatorial(
+#     extrapolation_rasters_mask,
+#     ref_names = c(
+#       "PresenceOnly.ExDet.univariate",
+#       "PresenceOnly.ExDet.analogue"
+#     ),
+#     target_names = c(
+#       "PresenceOnly.ExDet.combinatorial",
+#       "PresenceOnly.mic.combinatorial"
+#     ),
+#     ref_grid = cmip_layers_proj[[1]][[1]][[1]]
+#   )
+# }
 
 # Save rasters ----
 lapply(

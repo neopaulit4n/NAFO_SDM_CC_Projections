@@ -126,7 +126,6 @@ transform_cmip_to_raster <- function(data, varstat, poi = NULL, sspoi = NULL) {
   
   # Transform into terra vector of points
   pts <- terra::vect(df)
-  # pts_rast <- terra::rast(df, type = "xyz", crs = "EPSG:4326")
 
   # Determine resolution of data in degrees
   res <- round(sort(unique(data$lon))[2] - sort(unique(data$lon))[1], 5)

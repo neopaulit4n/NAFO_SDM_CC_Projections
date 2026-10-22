@@ -3,7 +3,7 @@
 # Load data ----
 source("R/analysis/01_LoadData.R")
 
-vmeoi <- "black_corals" # "boltenia"
+vmeoi <- "black_corals"
 
 # Initialise fold metrics dataframe to save results from each fold of each iteration ----
 fold_metrics_summary_df <- data.frame(
@@ -18,7 +18,7 @@ fold_metrics_summary_df <- data.frame(
 
 loop_seed <- switch(
   vmeoi,
-  "black_corals" = 412,
+  "black_corals" = 411,
   "small_gorgonians" = 412,
   "large_sponges" = 413,
   "sea_pens" = 414,
