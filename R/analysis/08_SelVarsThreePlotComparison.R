@@ -46,7 +46,8 @@ p_sel_cmip_vars <- lapply(
         name = get_cmocean_palette(str_extract(var, "^(.+?)_", group = 1)),
         na.value = "transparent"
       ) +
-      labs(title = gsub("_", " ", var))
+      labs(title = gsub("_", " ", var)) +
+      theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
     ggsave(
       paste0(output_folder, "/SelVarsMaps/", var, ".jpg"),
       width = 8,

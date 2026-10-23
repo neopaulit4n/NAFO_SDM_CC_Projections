@@ -30,18 +30,46 @@ rf_prelim_form <- as.formula(paste(
 
 # Preliminary RF model run (save/load) ----
 cat("Running preliminary RF model\n")
-set.seed(loop_seed)
-rf_prelim <- randomForest::randomForest(
-  formula = rf_prelim_form,
-  data = vme_df,
-  importance = TRUE
-)
 
-# Extract variable importance metrics ----
+rf_prelim <- list() # Create empty list for forests
+rf_prelim_imp <- list() # create empty list for importances
+
+for (j in 1:100) {
+  cat(paste("Running loop", j, "\n"))
+
+  set.seed(loop_seed + 500 + j)
+  rf_prelim[[j]] <- randomForest::randomForest(
+    formula = rf_prelim_form,
+    data = vme_df,
+    importance = TRUE
+  )
+
+  rf_prelim_imp_loop[[j]] <- as.data.frame(randomForest::importance(rf_prelim[[j]])) |>
+    rownames_to_column(var = "Variable") |>
+    arrange(desc(MeanDecreaseGini)) |>
+    mutate(var_order = row_number())
+
+}
+
+# Extract preliminary RF model variable importance metrics ----
 cat("Extracting preliminary RF model variable importance metrics\n")
-rf_prelim_imp <- as.data.frame(randomForest::importance(rf_prelim)) %>%
-  rownames_to_column(var = "Variable") %>%
+
+# Combine runs into dataframe and summarise mean importance by variable
+rf_prelim_imp <- rf_prelim_imp_loop |>
+  reduce(bind_rows) |>
+  mutate(n_var_order = n(), .by = c("Variable", "var_order")) |>
+  summarise(across(Absence:var_order, \(x) mean(x, na.rm = TRUE)), .by = "Variable") |>
   arrange(desc(MeanDecreaseGini))
+
+rf_prelim_imp_order <- rf_prelim_imp |>
+  reduce(bind_rows) |>
+  select(Variable, var_order) |>
+  mutate(n_var_order = n(), .by = c("Variable", "var_order")) |>
+  distinct() |>
+  pivot_wider(id_cols = var_order, names_from = Variable, values_from = n_var_order)
+
+write.csv(rf_prelim_imp, paste0(output_folder,"/",vmeoi,"_table_rf_PrelimRFAllVariables_ImportanceSummary.csv"))
+write.csv(rf_prelim_imp_order, paste0(output_folder,"/",vmeoi,"_table_rf_PrelimRFAllVariables_ImportanceRankSummary.csv"))
 
 # Show var imp plot for each VME group, order each by descending importance
 plot_rf_prelim_var_imp <- ggplot(
