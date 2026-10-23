@@ -286,7 +286,8 @@ vme_var_selection <- select_vme_vars(
   cor_threshold = 0.7,
   verbose = FALSE
 )
-selected_vme_vars <- vme_var_selection$selected_vars
+# selected_vme_vars <- vme_var_selection$selected_vars
+selected_vme_vars <- vme_vars  # keep all variables
 
 # Update VIF table with this iteration's results ----
 vif_df_i <- data.frame(
