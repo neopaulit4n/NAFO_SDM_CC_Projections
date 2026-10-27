@@ -130,7 +130,12 @@ plot_frcgam_sspvarperiod <- ggplot(
 ) +
   facet_grid(vars(SSP), vars(Variable), scales = "free") +
   # geom_point(aes(colour = Division), alpha = 0.2) +
-  geom_smooth(alpha = 0.7) + # uses GAM by default
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x, bs = "cs"),
+    method.args = list(family = quasibinomial),
+    alpha = 0.7
+  ) +
   # Apply manual colour scheme for periods
   scale_colour_manual(
     "Period",
@@ -161,7 +166,13 @@ plot_frcgam_vardiv <- ggplot(z, aes(x = Value, y = mean)) +
   facet_wrap(~Variable, scales = "free") +
   geom_point(aes(colour = Division), alpha = 0.05) +
   # geom_polygon(data = hull_df, aes(colour = Division), fill = "transparent", show.legend = FALSE) +
-  geom_smooth(alpha = 0.7, colour = "black") + # uses GAM by default
+  geom_smooth(
+    method = "gam",
+    formula = y ~ s(x, bs = "cs"),
+    method.args = list(family = quasibinomial),
+    alpha = 0.7,
+    colour = "black"
+  ) +
   theme_bw() +
   labs(y = "Mean predicted presence probability", title = "Reference") +
   guides(colour = guide_legend(override.aes = list(alpha = 1)))
