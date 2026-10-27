@@ -32,11 +32,14 @@ rf_prelim_form <- as.formula(paste(
 cat("Running preliminary RF model\n")
 
 rf_prelim <- list() # Create empty list for forests
-rf_prelim_imp <- list() # create empty list for importances
+rf_prelim_imp_loop <- list() # create empty list for importances
 
 for (j in 1:100) {
   cat(paste("Running loop", j, "\n"))
 
+  # output_100prelimloop: loop_seed + 500 + j
+  # output_100prelimloop2: loop_seed + 600 + j
+  # output_1000prelimloop: loop_seed + 700 + j
   set.seed(loop_seed + 500 + j)
   rf_prelim[[j]] <- randomForest::randomForest(
     formula = rf_prelim_form,
@@ -61,7 +64,7 @@ rf_prelim_imp <- rf_prelim_imp_loop |>
   summarise(across(Absence:var_order, \(x) mean(x, na.rm = TRUE)), .by = "Variable") |>
   arrange(desc(MeanDecreaseGini))
 
-rf_prelim_imp_order <- rf_prelim_imp |>
+rf_prelim_imp_order <- rf_prelim_imp_loop |>
   reduce(bind_rows) |>
   select(Variable, var_order) |>
   mutate(n_var_order = n(), .by = c("Variable", "var_order")) |>
@@ -379,3 +382,5 @@ vme_layers_proj <- lapply(period_all, function(poi) {
 # var_select_df <- filter(var_select_df, vmeoi == vmeoi) %>%
 #   janitor::adorn_totals("row")
 # write_csv(var_select_df, paste0(output_folder,"/",vmeoi,"_summary_variable_selection.csv"))
+
+save.image(paste0(output_folder,"/",vmeoi,"_savepoint.RData"))
